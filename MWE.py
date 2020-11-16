@@ -14,5 +14,14 @@ if False:  # plot image1
     Image.fromarray(np.sum(d['image1'].numpy().transpose(1,2,0), axis=2)/3).show()
 
 resnet18 = torchvision.models.resnet18(pretrained=True)
+
+activations = {}
+def get_activation(name):
+    def hook(model, input, output):
+        activations[name] = output.detach()
+    return hook
+
+for l in [1,2,3,4]:
+    resnet18.__dict__['_modules'][f"layer{l}"][0].conv1.register_forward_hook(get_activation(f"layer{l}_conv1"))
+
 logits = resnet18(repeated_image)
-print(logits[0])
