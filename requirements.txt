@@ -1,0 +1,7 @@
+python = 3.8
+pytorch::pytorch
+pytorch::torchvision
+h5py
+pillow
+matplotlib
+numpy
