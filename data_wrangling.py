@@ -1,7 +1,9 @@
+import os
 import torch.nn as nn
 from torch.utils.data import DataLoader
 import torchvision
 from lib.megadepth_dataset import MegaDepthDataset
+
 class ResNetIntermediateExtractionTransformer:
     """ Transforms MegaDepth datapoints to dict of extracted intermediate states """
     def __init__(self, net: nn.Module = None):
@@ -23,15 +25,20 @@ class ResNetIntermediateExtractionTransformer:
         _ = self.net(sample['image1'].unsqueeze(0))
         return self.activations
 
+def test_MegaDepthDataset_path():
+    assert "MegaDepthDatasetPath" in os.environ.keys(), "Please set the environment variable 'MegaDepthDatasetPath'"
+
 def test_load_dataset():
-    base_path = "/home/romeo/Documents/ETH/polybox/Shared/Deep Learning/MegaDepthDataset"
+    assert "MegaDepthDatasetPath" in os.environ.keys(), "Please set the environment variable 'MegaDepthDatasetPath'"
+    base_path = os.environ['MegaDepthDatasetPath']
     dataset = MegaDepthDataset(scene_list_path=f"{base_path}/train_scenes.txt", scene_info_path=f"{base_path}/scene_info", base_path=base_path)
     dataset.build_dataset()
     assert("image1" in dataset[0].keys())
 
 def test_dataset_transformation():
     extraction_transformer = ResNetIntermediateExtractionTransformer()
-    base_path = "/home/romeo/Documents/ETH/polybox/Shared/Deep Learning/MegaDepthDataset"
+    assert "MegaDepthDatasetPath" in os.environ.keys(), "Please set the environment variable 'MegaDepthDatasetPath'"
+    base_path = os.environ['MegaDepthDatasetPath']
     dataset = MegaDepthDataset(scene_list_path=f"{base_path}/train_scenes.txt", scene_info_path=f"{base_path}/scene_info", base_path=base_path, transform=extraction_transformer)
     dataset.build_dataset()
 
