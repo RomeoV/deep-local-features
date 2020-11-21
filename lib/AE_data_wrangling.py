@@ -2,7 +2,7 @@ import os
 import torch.nn as nn
 from torch.utils.data import DataLoader, random_split
 import torchvision
-from lib.megadepth_dataset import MegaDepthDataset
+from megadepth_dataset import MegaDepthDataset
 import pytorch_lightning
 
 
