@@ -52,20 +52,11 @@ def test_dataset_transformation():
 
 
 class AutoencoderDataModule(pytorch_lightning.LightningDataModule):
-    """ Autoencoder Data Module for pytorch_lightning
-
-    Loads MegaDepth dataset (train, val, test) and automatically extracts the
-    internal representations.
-    
-    Can be used very easily with pytorch_lightning training architecture.
-    """
-
     def __init__(self, batch_size=64):
         super().__init__()
         self.batch_size = batch_size
     
     def prepare_data(self):
-        """ Builds MegaDepthDataset(s) with extraction """
         print("Running data module setup!")
         assert "MegaDepthDatasetPath" in os.environ.keys(), "Please set the environment variable 'MegaDepthDatasetPath'"
         base_path = os.environ['MegaDepthDatasetPath']
@@ -95,7 +86,6 @@ class AutoencoderDataModule(pytorch_lightning.LightningDataModule):
     def test_dataloader(self):
         autoencoder_test = DataLoader(self.autoencoder_test, batch_size=self.batch_size)
         return autoencoder_test
-
 
 def test_AEDataModule():
     # stage = 'fit'
