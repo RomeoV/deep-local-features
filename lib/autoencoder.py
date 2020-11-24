@@ -1,19 +1,22 @@
 import torch
 from torch import nn
 from pytorch_lightning.core.lightning import LightningModule
-from AE_data_wrangling import AutoencoderDataModule
+
 
 from torch.nn import functional as F
 import pytorch_lightning
+
+
+from lib.AE_data_wrangling import AutoencoderDataModule
 
 class LitAutoEncoder(LightningModule):
   def __init__(self):
     super().__init__()
     self.encoder = nn.Sequential(
-        nn.Conv2d(in_channels=64, out_channels=10, kernel_size=(64,64)),
+        nn.Conv2d(in_channels=64, out_channels=10, kernel_size=(1,1)),
     )
     self.decoder = nn.Sequential(
-        nn.ConvTranspose2d(in_channels=10, out_channels=64, kernel_size=(64,64)),
+        nn.ConvTranspose2d(in_channels=10, out_channels=64, kernel_size=(1,1)),
     )
   
   def forward(self, x):
