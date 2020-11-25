@@ -6,7 +6,7 @@ import torchvision.models
 from torch.nn import functional as F
 import pytorch_lightning
 
-from lib.correspondence_datamodule import ResnetCorrespondenceExtractor, ResnetActivationExtractor
+from lib.correspondence_datamodule import ResnetCorrespondenceExtractor, ResnetActivationExtractor, CorrespondenceDataModule
 
 class FeatureEncoder(LightningModule):
     def __init__(self):
@@ -16,80 +16,82 @@ class FeatureEncoder(LightningModule):
 
         self.encoded_channels = 16
 
-        self.early_input_channels = 128
-        self.middle_input_channels = 256
-        self.deep_input_channels = 512
+        self.stages = ('early', 'middle', 'deep')
+
+        self.input_channels = {
+            'early': 128,
+            'middle': 256,
+            'deep': 512,
+        }
 
         self.resnet_extractor = ResnetActivationExtractor(self.resnet)
         self.resnet_correspondence_extractor = ResnetCorrespondenceExtractor(self.resnet_extractor)
 
-        self.encoder_early = nn.Sequential(
-            nn.AvgPool2d(kernel_size=(2,2), stride = (2,2)),
-            nn.Conv2d(in_channels=self.early_input_channels, out_channels=self.encoded_channels, kernel_size=(1,1)), 
-            nn.ReLU(True),
-        )
-        self.decoder_early = nn.Sequential(
-            nn.ConvTranspose2d(in_channels=self.encoded_channels, out_channels=self.early_input_channels, kernel_size=(1,1)), 
-            nn.Sigmoid(),
-        )
+        self.encoder = {
+            'early': nn.Sequential(
+                nn.Conv2d(in_channels=self.input_channels['early'], out_channels=self.encoded_channels, kernel_size=(1,1)), 
+                nn.ReLU(True),
+                ),
+            'middle': nn.Sequential(
+                nn.Conv2d(in_channels=self.input_channels['middle'], out_channels=self.encoded_channels, kernel_size=(1,1)), 
+                nn.ReLU(True),
+                ),
+            'deep': nn.Sequential(
+                nn.Conv2d(in_channels=self.input_channels['deep'], out_channels=self.encoded_channels, kernel_size=(1,1)), 
+                nn.ReLU(True),
+                ),
+        }
 
-        self.encoder_middle = nn.Sequential(
-            nn.Conv2d(in_channels=self.middle_input_channels, out_channels=self.encoded_channels, kernel_size=(1,1)), 
-            nn.ReLU(True),
-        )
-        self.decoder_middle = nn.Sequential(
-            nn.ConvTranspose2d(in_channels=self.encoded_channels, out_channels=self.middle_input_channels, kernel_size=(1,1)), 
-            nn.Sigmoid(),
-        )
-
-        self.encoder_deep = nn.Sequential(
-            nn.Upsample(scale_factor=2, mode="bilinear", align_corners=True),
-            nn.Conv2d(in_channels=self.deep_input_channels, out_channels=self.encoded_channels, kernel_size=(1,1)), 
-            nn.ReLU(True),
-        )
-        self.decoder_deep = nn.Sequential(
-            nn.ConvTranspose2d(in_channels=self.encoded_channels, out_channels=self.deep_input_channels, kernel_size=(1,1)), 
-            nn.Sigmoid(),
-        )
+        self.decoder = {
+            'early': nn.Sequential(
+                nn.ConvTranspose2d(in_channels=self.encoded_channels, out_channels=self.input_channels['early'], kernel_size=(1,1)), 
+                #nn.Sigmoid(),
+                ),
+            'middle': nn.Sequential(
+                nn.ConvTranspose2d(in_channels=self.encoded_channels, out_channels=self.input_channels['middle'], kernel_size=(1,1)), 
+                #nn.Sigmoid(),
+                ),
+            'deep': nn.Sequential(
+                nn.ConvTranspose2d(in_channels=self.encoded_channels, out_channels=self.input_channels['deep'], kernel_size=(1,1)), 
+                #nn.Sigmoid(),
+                ),
+        }
 
     def forward(self, x):
-        (x_early, x_middle, x_deep) = self.get_resnet_layers(x)
+        x = self.get_resnet_layers(x)
 
-        y_early = self.encoder_early(x_early)
-        y_middle = self.encoder_middle(x_middle)
-        y_deep = self.encoder_deep(x_deep)
+        y = {}
+        y['early'] = self.encoder['early'](x['early'])
+        y['middle'] = self.encoder['middle'](x['middle'])
+        y['deep'] = self.encoder['deep'](x['deep'])
 
-        return [y_early, y_middle, y_deep]
+        return y
 
     def training_step(self, batch, batch_idx):
-        (x_early, x_middle, x_deep) = get_resnet_layers(batch["image1"])
+        x = self.get_resnet_layers(batch["image1"])
 
-        z_early = self.encoder_early(x_early)
-        z_middle = self.encoder_middle(x_middle)
-        z_deep = self.encoder_deep(x_deep)
+        z = {}
+        x_hat = {}
+        for s in self.stages:
+            z[s] = self.encoder[s](x[s])
+            x_hat[s] = self.decoder[s](z[s])
 
-        x_hat_early = self.decoder_early(z_early)
-        x_hat_middle = self.decoder_middle(z_middle)
-        x_hat_deep = self.decoder_deep(z_deep)
-
-        loss = F.mse_loss(x_early, x_hat_early) + F.mse_loss(x_middle, x_hat_middle) + F.mse_loss(x_deep, x_hat_deep)
+        loss = sum((F.mse_loss(x[s], x_hat[s]) for s in self.stages))
 
         self.log('train_loss', loss)
 
         return loss
 
     def validation_step(self, batch, batch_idx):
-        (x_early, x_middle, x_deep) = get_resnet_layers(batch["image1"])
+        x = self.get_resnet_layers(batch["image1"])
 
-        z_early = self.encoder_early(x_early)
-        z_middle = self.encoder_middle(x_middle)
-        z_deep = self.encoder_deep(x_deep)
+        z = {}
+        x_hat = {}
+        for s in self.stages:
+            z[s] = self.encoder[s](x[s])
+            x_hat[s] = self.decoder[s](z[s])
 
-        x_hat_early = self.decoder_early(z_early)
-        x_hat_middle = self.decoder_middle(z_middle)
-        x_hat_deep = self.decoder_deep(z_deep)
-
-        loss = F.mse_loss(x_early, x_hat_early) + F.mse_loss(x_middle, x_hat_middle) + F.mse_loss(x_deep, x_hat_deep)
+        loss = sum((F.mse_loss(x[s], x_hat[s]) for s in self.stages))
 
         self.log('validation_loss', loss)
 
@@ -102,8 +104,14 @@ class FeatureEncoder(LightningModule):
     @torch.no_grad()
     def get_resnet_layers(self,x):
         activations = self.resnet_extractor(x)
-        # print(activations.keys())
-        return (activations["layer2_conv1"], activations["layer3_conv1"], activations["layer4_conv1"])
+        activation_transform = {
+            'early': nn.AvgPool2d(kernel_size=(2,2), stride = (2,2)),
+            'middle': lambda x: x,
+            'deep': nn.Upsample(scale_factor=2, mode="bilinear", align_corners=True),
+        }
+        return {'early': activation_transform['early'](activations["layer2_conv1"]),
+                'middle': activation_transform['middle'](activations["layer3_conv1"]),
+                'deep': activation_transform['deep'](activations["layer4_conv1"])}
 
 if __name__ == "__main__":
     autoencoder = FeatureEncoder()
