@@ -1,7 +1,8 @@
-python = 3.8
-pytorch::pytorch
-pytorch::torchvision
+torch
+torchvision
 h5py
 pillow
 matplotlib
 numpy
+tensorflow>=2.0.0
+absl-py
