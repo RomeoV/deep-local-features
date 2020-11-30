@@ -1,6 +1,7 @@
 import torch
 from torch import nn
 from pytorch_lightning.core.lightning import LightningModule
+from pytorch_lightning.loggers import TensorBoardLogger
 import torchvision.models
 
 from torch.nn import functional as F
@@ -115,6 +116,7 @@ class FeatureEncoder(LightningModule):
 
 if __name__ == "__main__":
     autoencoder = FeatureEncoder()
-    trainer = pytorch_lightning.Trainer(gpus=1 if torch.cuda.is_available() else None)
+    tb_logger = TensorBoardLogger('tb_logs', name='autoencoder')
+    trainer = pytorch_lightning.Trainer(logger=tb_logger, gpus=1 if torch.cuda.is_available() else None)
     dm = CorrespondenceDataModule()
     trainer.fit(autoencoder, dm)
