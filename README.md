@@ -8,6 +8,12 @@ conda install --file requirements.txt
 conda activate DL
 ```
 
+### Run your .py files in lib
+go to the root directory of the repo
+```
+python -m lib.autoencoder
+```
+
 ### TODOs
 
 ### Goals

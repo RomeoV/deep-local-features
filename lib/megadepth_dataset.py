@@ -15,6 +15,8 @@ from tqdm import tqdm
 
 from externals.d2net.lib.utils import preprocess_image
 
+from typing import Optional, Callable
+
 
 class MegaDepthDataset(Dataset):
     def __init__(
@@ -28,7 +30,8 @@ class MegaDepthDataset(Dataset):
             max_overlap_ratio=1,
             max_scale_ratio=np.inf,
             pairs_per_scene=100,
-            image_size=256
+            image_size=256,
+            transform: Optional[Callable] = None,
     ):
         self.scenes = []
         with open(scene_list_path, 'r') as f:
@@ -52,6 +55,8 @@ class MegaDepthDataset(Dataset):
         self.image_size = image_size
 
         self.dataset = []
+
+        self.transform = transform
 
     def build_dataset(self):
         self.dataset = []
@@ -225,7 +230,11 @@ class MegaDepthDataset(Dataset):
         image1 = preprocess_image(image1, preprocessing=self.preprocessing)
         image2 = preprocess_image(image2, preprocessing=self.preprocessing)
 
-        return {
+        if self.transform is None:
+            identity = lambda x: x
+            self.transform = identity
+
+        return self.transform({
             'image1': torch.from_numpy(image1.astype(np.float32)),
             'depth1': torch.from_numpy(depth1.astype(np.float32)),
             'intrinsics1': torch.from_numpy(intrinsics1.astype(np.float32)),
@@ -236,4 +245,4 @@ class MegaDepthDataset(Dataset):
             'intrinsics2': torch.from_numpy(intrinsics2.astype(np.float32)),
             'pose2': torch.from_numpy(pose2.astype(np.float32)),
             'bbox2': torch.from_numpy(bbox2.astype(np.float32))
-        }
+        })
