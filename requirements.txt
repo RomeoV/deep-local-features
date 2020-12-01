@@ -1,8 +1,25 @@
-torch
-torchvision
+python = 3.7
+pytorch::pytorch
+pytorch::torchvision
+conda-forge::pytorch-lightning
+jupyterlab
+opencv
 h5py
 pillow
 matplotlib
 numpy
-tensorflow>=2.0.0
+tqdm
+scipy
+imageio
 absl-py
+
+# torch
+# torchvision
+# h5py
+# pillow
+# matplotlib
+# numpy
+# tensorflow>=2.0.0
+# absl-py
+
+
