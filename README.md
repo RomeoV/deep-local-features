@@ -3,7 +3,7 @@
 ### Setup
 Create a new conda environment and install the packages from *requirements.txt*
 ```bash
-conda create -n DL python=3.8
+conda create -n DL
 conda install --file requirements.txt
 conda activate DL
 ```
