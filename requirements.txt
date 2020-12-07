@@ -13,6 +13,12 @@ scipy
 imageio
 absl-py
 
+# # for hpatches
+# joblib
+# pandas
+# dill
+# tabulate
+
 # torch
 # torchvision
 # h5py
