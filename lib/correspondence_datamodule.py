@@ -2,6 +2,7 @@ import os
 import torch.nn as nn
 from torch.utils.data import DataLoader, random_split
 import torchvision
+import multiprocessing
 import pytorch_lightning
 
 from lib.megadepth_dataset import MegaDepthDataset
@@ -70,6 +71,7 @@ class CorrespondenceDataModule(pytorch_lightning.LightningDataModule):
     def __init__(self, base_path=None, batch_size=64):
         super().__init__()
         self.batch_size = batch_size
+        self.num_workers = (multiprocessing.cpu_count() - 2) if multiprocessing.cpu_count() >= 4 else 1
 
         if base_path is None:
             self.base_path = os.environ['MegaDepthDatasetPath']
@@ -93,15 +95,15 @@ class CorrespondenceDataModule(pytorch_lightning.LightningDataModule):
             self.correspondence_test = self.dataset_test
 
     def train_dataloader(self):
-        correspondence_train = DataLoader(self.correspondence_train, batch_size=self.batch_size)
+        correspondence_train = DataLoader(self.correspondence_train, batch_size=self.batch_size, num_workers=self.num_workers)
         return correspondence_train
 
     def val_dataloader(self):
-        correspondence_val = DataLoader(self.correspondence_val, batch_size=self.batch_size)
+        correspondence_val = DataLoader(self.correspondence_val, batch_size=self.batch_size, num_workers=self.num_workers)
         return correspondence_val
 
     def test_dataloader(self):
-        correspondence_test = DataLoader(self.correspondence_test, batch_size=self.batch_size)
+        correspondence_test = DataLoader(self.correspondence_test, batch_size=self.batch_size, num_workers=self.num_workers)
         return correspondence_test
 
 
