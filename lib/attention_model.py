@@ -13,7 +13,7 @@ class AttentionLayer(LightningModule):
     def __init__(self, feature_encoder):
         super().__init__()
         self.feature_encoder = feature_encoder
-        self.loss = SimilarityLoss()
+        self.loss = TripletMarginLoss()
 
     def softmax(self, ux):
         if ux.shape[1] == 1:
@@ -32,39 +32,33 @@ class AttentionLayer(LightningModule):
         x1 = batch['image1']
         x2 = batch["image2"]
 
-        x1_encoded = self.feature_encoder.forward(x1)
-        x2_encoded = self.feature_encoder.forward(x2)
-
-        # We need to concatenate the features of {x1, x2}_encoded here
+        x1_encoded = self.concat_layers(self.feature_encoder.forward(x1))
+        x2_encoded = self.concat_layers(self.feature_encoder.forward(x2))
 
         x1_encoded.requires_grad = False
         x2_encoded.requires_grad = False
         y1 = self.forward(x1_encoded)
         y2 = self.forward(x2_encoded)
 
-        loss = self.loss(y1,y2, correspondence)
+        loss = self.loss(x1_encoded, x2_encoded, y1, y2, correspondence)
 
         self.log('train_loss', loss)
         return loss
 
     def validation_step(self, batch, batch_idx):
-
         x1 = batch['image1']
         x2 = batch["image2"]
 
-        x1_encoded = self.auto_encoder.forward(x1)
-        x2_encoded = self.auto_encoder.forward(x2)
+        x1_encoded = self.concat_layers(self.feature_encoder.forward(x1))
+        x2_encoded = self.concat_layers(self.feature_encoder.forward(x2))
 
-        # We need to concatenate the features of {x1, x2}_encoded here
-        
         x1_encoded.requires_grad = False
         x2_encoded.requires_grad = False
-
         y1 = self.forward(x1_encoded)
         y2 = self.forward(x2_encoded)
 
-        loss = self.loss(y1,y2, correspondence)
-        
+        loss = self.loss(x1_encoded, x2_encoded, y1, y2, correspondence)
+
         self.log('validation_loss', loss)
         return loss
 
@@ -72,3 +66,6 @@ class AttentionLayer(LightningModule):
     def configure_optimizers(self):
         optimizer = torch.optim.Adam(self.parameters(), lr=1e-3)
         return optimizer
+
+    def concat_layers(self, x_dict):
+        return torch.cat([x_dict["early"], x_dict["middle"], x_dict["deep"]], 1) #bx48xWxH
