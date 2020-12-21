@@ -74,7 +74,7 @@ class TripletMarginLoss(nn.Module):
         #default pos1 has ids [0, ..., 1024]
         # now ids says which of these are valid based on relative transformation between them, e.g.
         # [5, 28, 32, ...,1020]
-        # so a legal correspondence would be pos1[:,5]<-->pos2[:,5]
+        # so a legal correspondence would be pos1[:,5]<-->pos2[:,0]
         try:
             pos1, pos2, ids = warp(pos1,
                 depth1, intrinsics1, pose1, bbox1,
