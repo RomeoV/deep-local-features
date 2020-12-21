@@ -40,7 +40,7 @@ class TripletMarginLoss(nn.Module):
         idx: batch index (basically loop over all images in the batch)
         out: scalar tensor (1)
         """
-        loss = torch.tensor(np.array([0], dtype=np.float32), device=device)
+        loss = torch.tensor(np.array([0], dtype=np.float32))
         
         depth1 = correspondences['depth1'][idx] # [h1, w1]???
         intrinsics1 = correspondences['intrinsics1'][idx]  # [3, 3]
@@ -80,14 +80,14 @@ class TripletMarginLoss(nn.Module):
                 depth1, intrinsics1, pose1, bbox1,
                 depth2, intrinsics2, pose2, bbox2)
         except EmptyTensorError:
-            continue
+            return loss
         fmap_pos1 = fmap_pos1[:, ids] #uv-positions on 32x32 grid, but in list format 2xlen(ids)
         descriptors1 = descriptors1[:, ids] #again as list 48xlen(ids)
         scores1 = scores1[ids] #again as list 1xlen(ids)
 
         # Skip the pair if not enough GT correspondences are available
         if ids.size(0) < 128:
-            continue
+            return loss
 
         # Descriptors at the corresponding positions
         fmap_pos2 = torch.round(
