@@ -12,7 +12,7 @@ class FeatureEncoder(LightningModule):
     def __init__(self):
         super().__init__()
 
-        self.resnet = torchvision.models.resnet50(pretrained=True)
+        self.resnet = torchvision.models.resnet50(pretrained=True).eval().requires_grad_(False)
 
         self.encoded_channels = 16
 
