@@ -12,6 +12,7 @@ tqdm
 scipy
 imageio
 absl-py
+receptivefield>=0.5.0
 
 # torch
 # torchvision
