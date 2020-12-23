@@ -5,7 +5,7 @@ import torch
 import torch.nn as nn
 from torch.nn import functional as F
 from lib.warping import *
-from externals.d2net.utils import *
+from externals.d2net.lib.utils import *
 
 class SimilarityLoss(nn.Module):
     def __init__(self):
@@ -17,16 +17,19 @@ class SimilarityLoss(nn.Module):
 
 class TripletMarginLoss(nn.Module):
     def __init__(self, margin=1, safe_radius=4, scaling_steps=3):
-        super(TripletMarginLoss, self).__init__()
+        super().__init__()
         self.margin = margin
         self.safe_radius = safe_radius
         self.scaling_steps = scaling_steps
+        self.device = torch.device("cpu") #torch.device('cpu') if not torch.cuda.is_available() else 
+
+        self.plot = True
 
     def forward(self, x1_encoded, x2_encoded, attentions1, attentions2, correspondences):
         loss = torch.tensor(np.array([0], dtype=np.float32))
         #ToDo: only count valid samples!
         for idx in range(x1_encoded.shape[0]):
-            loss += triplet_margin_loss(x1_encoded, x2_encoded. attentions1, attentions2, correspondences, i)
+            loss += self.triplet_margin_loss(x1_encoded, x2_encoded, attentions1, attentions2, correspondences, idx)
         return loss / x1_encoded.shape[0]
 
     def triplet_margin_loss(self, x1_encoded, x2_encoded, attentions1, \
@@ -60,7 +63,7 @@ class TripletMarginLoss(nn.Module):
 
         dense_features2 = x2_encoded[idx]
         _, h2, w2 = dense_features2.size()
-        scores2 = attentions2[idx].view(-1)
+        scores2 = attentions2[idx].squeeze(0)
 
         all_descriptors1 = F.normalize(dense_features1.view(c, -1), dim=0)# 48x1024, row-major
         descriptors1 = all_descriptors1
@@ -68,7 +71,7 @@ class TripletMarginLoss(nn.Module):
         all_descriptors2 = F.normalize(dense_features2.view(c, -1), dim=0)# 48x1024
 
         # Warp the positions from image 1 to image 2
-        fmap_pos1 = grid_positions(h1, w1, device) #feature positions, 2x(32*32)=2x1024 [y,x]-format -> [[0,0],[0,1], ...[32,32]]
+        fmap_pos1 = grid_positions(h1, w1, self.device) #feature positions, 2x(32*32)=2x1024 [y,x]-format -> [[0,0],[0,1], ...[32,32]]
         pos1 = upscale_positions(fmap_pos1, scaling_steps=self.scaling_steps) # feature positions in 256x256, [y,x]-format -> [[0,0],[0,11.5], ...[256,256]]
         #ids: matching ids in sequence (256*256)
         #default pos1 has ids [0, ..., 1024]
@@ -101,7 +104,7 @@ class TripletMarginLoss(nn.Module):
             descriptors1.t().unsqueeze(1) @ descriptors2.t().unsqueeze(2)
         ).squeeze() #p(c) in paper, ||dA -dB||
 
-        all_fmap_pos2 = grid_positions(h2, w2, device)
+        all_fmap_pos2 = grid_positions(h2, w2, self.device)
         position_distance = torch.max(
             torch.abs(
                 fmap_pos2.unsqueeze(2).float() -
@@ -116,7 +119,7 @@ class TripletMarginLoss(nn.Module):
             dim=1
         )[0] 
 
-        all_fmap_pos1 = grid_positions(h1, w1, device)
+        all_fmap_pos1 = grid_positions(h1, w1, self.device)
         position_distance = torch.max(
             torch.abs(
                 fmap_pos1.unsqueeze(2).float() -
@@ -135,7 +138,56 @@ class TripletMarginLoss(nn.Module):
             negative_distance1, negative_distance2
         ) # (n(c))
 
-        scores2 = scores2[fmap_pos2[0, :], fmap_pos2[1, :]]
+        scores2 = scores2[fmap_pos2[0, :], fmap_pos2[1, :]].view(-1)
+
+        if (self.plot):
+            # We should put this in separate functions to visualize the attention maps
+            pos1_aux = pos1.cpu().numpy()
+            pos2_aux = pos2.cpu().numpy()
+            k = pos1_aux.shape[1]
+            col = np.random.rand(k, 3)
+            n_sp = 4
+            plt.figure(figsize=(15,15))
+            plt.subplot(1, n_sp, 1)
+            im1 = imshow_image(
+                correspondences['image1'][idx].cpu().numpy(),
+            )
+            plt.imshow(im1)
+            plt.scatter(
+                pos1_aux[1, :], pos1_aux[0, :],
+                s=0.25**2, c=col, marker=',', alpha=0.5
+            )
+            plt.axis('off')
+            plt.subplot(1, n_sp, 2)
+
+            plt.imshow(
+                attentions1[idx].squeeze(0).data.cpu().numpy(),
+                cmap='Reds'
+            )
+            plt.axis('off')
+            plt.subplot(1, n_sp, 3)
+            im2 = imshow_image(
+                correspondences['image2'][idx].cpu().numpy()
+            )
+            plt.imshow(im2)
+            plt.scatter(
+                pos2_aux[1, :], pos2_aux[0, :],
+                s=0.25**2, c=col, marker=',', alpha=0.5
+            )
+            plt.axis('off')
+            plt.subplot(1, n_sp, 4)
+            plt.imshow(
+                attentions2[idx].squeeze(0).data.cpu().numpy(),
+                cmap='Reds'
+            )
+            plt.axis('off')
+            # savefig('train_vis/%s.%02d.%02d.%d.png' % (
+            #     'train' if batch['train'] else 'valid',
+            #     batch['epoch_idx'],
+            #     batch['batch_idx'] // batch['log_interval'],
+            #     idx_in_batch
+            # ), dpi=300)
+            # plt.close()
 
         return (torch.sum(scores1 * scores2 * F.relu(self.margin + diff)) /
             torch.sum(scores1 * scores2))
