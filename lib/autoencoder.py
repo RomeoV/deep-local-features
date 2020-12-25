@@ -12,15 +12,16 @@ from lib.tf_weight_loader import mapping as default_mapping
 
 
 class FeatureEncoder(LightningModule):
-    def __init__(self):
+    def __init__(self, load_tf_weights=True):
         super().__init__()
 
         self.resnet = torchvision.models.resnet50(
             pretrained=True).eval().requires_grad_(False)
 
-        mapping = default_mapping.get_default_mapping()
-        weight_loader = load_weights.WeightLoader(mapping=mapping)
-        self.resnet = weight_loader.set_torch_model(self.resnet)
+        if load_tf_weights:
+            mapping = default_mapping.get_default_mapping()
+            weight_loader = load_weights.WeightLoader(mapping=mapping)
+            self.resnet = weight_loader.set_torch_model(self.resnet)
 
         self.encoded_channels = 16
 
