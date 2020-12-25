@@ -6,7 +6,7 @@ from pytorch_lightning.core.lightning import LightningModule
 from torch.nn import functional as F
 import pytorch_lightning
 
-from lib.loss import SimilarityLoss
+from lib.loss import *
 from lib.autoencoder import FeatureEncoder
 
 class AttentionLayer(LightningModule):
@@ -23,20 +23,21 @@ class AttentionLayer(LightningModule):
             return F.softmax(ux, dim=1)[:,1:2]
     
     def forward(self, x):
-        x = nn.Conv2d(in_channels=self.feature_encoder.encoded_channels, \
-            out_channels=2, kernel_size=(1,1)); #bx2xWxH
-        x = softmax(x) #bx1xWxH
+        x = nn.Conv2d(in_channels=x.shape[1], \
+            out_channels=2, kernel_size=(1,1))(x) #bx2xWxH
+        x = self.softmax(x) #bx1xWxH
         return x
     
     def training_step(self, batch, batch_idx):
         x1 = batch['image1']
         x2 = batch["image2"]
 
-        x1_encoded = self.concat_layers(self.feature_encoder.forward(x1))
-        x2_encoded = self.concat_layers(self.feature_encoder.forward(x2))
+        with torch.no_grad():
+            x1_encoded = self.concat_layers(self.feature_encoder.forward(x1))
+            x2_encoded = self.concat_layers(self.feature_encoder.forward(x2))
 
-        x1_encoded.requires_grad = False
-        x2_encoded.requires_grad = False
+        # x1_encoded.requires_grad = False
+        # x2_encoded.requires_grad = False
         y1 = self.forward(x1_encoded)
         y2 = self.forward(x2_encoded)
 
@@ -49,11 +50,12 @@ class AttentionLayer(LightningModule):
         x1 = batch['image1']
         x2 = batch["image2"]
 
-        x1_encoded = self.concat_layers(self.feature_encoder.forward(x1))
-        x2_encoded = self.concat_layers(self.feature_encoder.forward(x2))
+        with torch.no_grad():
+            x1_encoded = self.concat_layers(self.feature_encoder.forward(x1))
+            x2_encoded = self.concat_layers(self.feature_encoder.forward(x2))
 
-        x1_encoded.requires_grad = False
-        x2_encoded.requires_grad = False
+        # x1_encoded.requires_grad = False
+        # x2_encoded.requires_grad = False
         y1 = self.forward(x1_encoded)
         y2 = self.forward(x2_encoded)
 
@@ -69,3 +71,75 @@ class AttentionLayer(LightningModule):
 
     def concat_layers(self, x_dict):
         return torch.cat([x_dict["early"], x_dict["middle"], x_dict["deep"]], 1) #bx48xWxH
+
+class MultiAttentionLayer(LightningModule):
+    def __init__(self, feature_encoder):
+        super().__init__()
+        self.feature_encoder = feature_encoder
+        self.loss = TripletMarginLoss()
+
+        self.early_attentions = AttentionLayer(feature_encoder)
+        self.middle_attentions = AttentionLayer(feature_encoder)
+        self.deep_attentions = AttentionLayer(feature_encoder)
+
+    def forward(self, x):
+        y = {}
+        y["early"] = self.early_attentions(x["early"])
+        y["middle"] = self.early_attentions(x["middle"])
+        y["deep"] = self.early_attentions(x["deep"])
+        return y
+
+    def validation_step(self, batch, batch_idx):
+        x1 = batch['image1']
+        x2 = batch["image2"]
+
+        with torch.no_grad():
+            x1_encoded = self.feature_encoder.forward(x1)
+            x2_encoded = self.feature_encoder.forward(x2)
+
+        # x1_encoded.requires_grad = False
+        # x2_encoded.requires_grad = False
+        y1 = self.forward(x1_encoded)
+        y2 = self.forward(x2_encoded)
+
+        loss = torch.tensor(np.array([0], dtype=np.float32))
+
+        for layer in y1_encoded.keys():
+            loss = loss +  self.loss(x1_encoded[layer], x2_encoded[layer], y1[layer], y2[layer], correspondence)
+        
+        self.log('train_loss', loss)
+        return loss
+
+    def validation_step(self, batch, batch_idx):
+        x1 = batch['image1']
+        x2 = batch["image2"]
+
+        with torch.no_grad():
+            x1_encoded = self.feature_encoder.forward(x1)
+            x2_encoded = self.feature_encoder.forward(x2)
+
+        # x1_encoded.requires_grad = False
+        # x2_encoded.requires_grad = False
+        y1 = self.forward(x1_encoded)
+        y2 = self.forward(x2_encoded)
+
+        loss = torch.tensor(np.array([0], dtype=np.float32))
+
+        for layer in y1_encoded.keys():
+            loss = loss +  self.loss(x1_encoded[layer], x2_encoded[layer], y1[layer], y2[layer], correspondence)
+
+        self.log('validation_loss', loss)
+        return loss
+
+
+    def configure_optimizers(self):
+        optimizer = torch.optim.Adam(self.parameters(), lr=1e-3)
+        return optimizer
+
+if __name__ == "__main__":
+    autoencoder = FeatureEncoder()
+
+    attentions = MultiAttentionLayer(autoencoder)
+    trainer = pytorch_lightning.Trainer(gpus=1 if torch.cuda.is_available() else None)
+    dm = CorrespondenceDataModule()
+    trainer.fit(attentions, dm)

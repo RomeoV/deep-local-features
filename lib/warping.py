@@ -6,10 +6,13 @@ import numpy as np
 import matplotlib.pyplot as plt
 import cv2
 
-from lib.attention_model import attention_model
 import torch
 from pathlib import Path 
 
+
+def uv_to_pos(uv):
+    return torch.cat([uv[1, :].view(1, -1), uv[0, :].view(1, -1)], dim=0)
+    
 def warp(pos1,
         depth1, intrinsics1, pose1, bbox1,
         depth2, intrinsics2, pose2, bbox2):
