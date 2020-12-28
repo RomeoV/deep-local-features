@@ -157,7 +157,7 @@ class TripletMarginLoss(nn.Module):
             plt.imshow(im1)
             plt.scatter(
                 pos1_aux[1, :], pos1_aux[0, :],
-                s=0.25, c=col, marker=',', alpha=0.5
+                s=1.0, c=col, marker=',', alpha=0.5
             )
             plt.axis('off')
             plt.subplot(1, n_sp, 2)
@@ -174,7 +174,7 @@ class TripletMarginLoss(nn.Module):
             plt.imshow(im2)
             plt.scatter(
                 pos2_aux[1, :], pos2_aux[0, :],
-                s=0.25, c=col, marker=',', alpha=0.5
+                s=1.0, c=col, marker=',', alpha=0.5
             )
             plt.axis('off')
             plt.subplot(1, n_sp, 4)
