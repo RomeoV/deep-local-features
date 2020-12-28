@@ -7,12 +7,21 @@ from torch.nn import functional as F
 import pytorch_lightning
 
 from lib.correspondence_datamodule import ResnetCorrespondenceExtractor, ResnetActivationExtractor, CorrespondenceDataModule
+from lib.tf_weight_loader import load_weights
+from lib.tf_weight_loader import mapping as default_mapping
+
 
 class FeatureEncoder(LightningModule):
-    def __init__(self):
+    def __init__(self, load_tf_weights=True):
         super().__init__()
 
-        self.resnet = torchvision.models.resnet50(pretrained=True).eval().requires_grad_(False)
+        self.resnet = torchvision.models.resnet50(
+            pretrained=True).eval().requires_grad_(False)
+
+        if load_tf_weights:
+            mapping = default_mapping.get_default_mapping()
+            weight_loader = load_weights.WeightLoader(mapping=mapping)
+            self.resnet = weight_loader.set_torch_model(self.resnet)
 
         self.encoded_channels = 16
 
@@ -25,36 +34,43 @@ class FeatureEncoder(LightningModule):
         }
 
         self.resnet_extractor = ResnetActivationExtractor(self.resnet)
-        self.resnet_correspondence_extractor = ResnetCorrespondenceExtractor(self.resnet_extractor)
+        self.resnet_correspondence_extractor = ResnetCorrespondenceExtractor(
+            self.resnet_extractor)
 
         self.encoder = {
             'early': nn.Sequential(
-                nn.Conv2d(in_channels=self.input_channels['early'], out_channels=self.encoded_channels, kernel_size=(1,1)), 
+                nn.Conv2d(
+                    in_channels=self.input_channels['early'], out_channels=self.encoded_channels, kernel_size=(1, 1)),
                 nn.ReLU(True),
-                ),
+            ),
             'middle': nn.Sequential(
-                nn.Conv2d(in_channels=self.input_channels['middle'], out_channels=self.encoded_channels, kernel_size=(1,1)), 
+                nn.Conv2d(
+                    in_channels=self.input_channels['middle'], out_channels=self.encoded_channels, kernel_size=(1, 1)),
                 nn.ReLU(True),
-                ),
+            ),
             'deep': nn.Sequential(
-                nn.Conv2d(in_channels=self.input_channels['deep'], out_channels=self.encoded_channels, kernel_size=(1,1)), 
+                nn.Conv2d(
+                    in_channels=self.input_channels['deep'], out_channels=self.encoded_channels, kernel_size=(1, 1)),
                 nn.ReLU(True),
-                ),
+            ),
         }
 
         self.decoder = {
             'early': nn.Sequential(
-                nn.ConvTranspose2d(in_channels=self.encoded_channels, out_channels=self.input_channels['early'], kernel_size=(1,1)), 
-                #nn.Sigmoid(),
-                ),
+                nn.ConvTranspose2d(in_channels=self.encoded_channels,
+                                   out_channels=self.input_channels['early'], kernel_size=(1, 1)),
+                # nn.Sigmoid(),
+            ),
             'middle': nn.Sequential(
-                nn.ConvTranspose2d(in_channels=self.encoded_channels, out_channels=self.input_channels['middle'], kernel_size=(1,1)), 
-                #nn.Sigmoid(),
-                ),
+                nn.ConvTranspose2d(in_channels=self.encoded_channels,
+                                   out_channels=self.input_channels['middle'], kernel_size=(1, 1)),
+                # nn.Sigmoid(),
+            ),
             'deep': nn.Sequential(
-                nn.ConvTranspose2d(in_channels=self.encoded_channels, out_channels=self.input_channels['deep'], kernel_size=(1,1)), 
-                #nn.Sigmoid(),
-                ),
+                nn.ConvTranspose2d(in_channels=self.encoded_channels,
+                                   out_channels=self.input_channels['deep'], kernel_size=(1, 1)),
+                # nn.Sigmoid(),
+            ),
         }
 
     def forward(self, x):
@@ -102,10 +118,10 @@ class FeatureEncoder(LightningModule):
         return optimizer
 
     @torch.no_grad()
-    def get_resnet_layers(self,x):
+    def get_resnet_layers(self, x):
         activations = self.resnet_extractor(x)
         activation_transform = {
-            'early': nn.AvgPool2d(kernel_size=(2,2), stride = (2,2)),
+            'early': nn.AvgPool2d(kernel_size=(2, 2), stride=(2, 2)),
             'middle': lambda x: x,
             'deep': nn.Upsample(scale_factor=2, mode="bilinear", align_corners=True),
         }
@@ -113,8 +129,10 @@ class FeatureEncoder(LightningModule):
                 'middle': activation_transform['middle'](activations["layer3_conv1"]),
                 'deep': activation_transform['deep'](activations["layer4_conv1"])}
 
+
 if __name__ == "__main__":
     autoencoder = FeatureEncoder()
-    trainer = pytorch_lightning.Trainer(gpus=1 if torch.cuda.is_available() else None)
+    trainer = pytorch_lightning.Trainer(
+        gpus=1 if torch.cuda.is_available() else None)
     dm = CorrespondenceDataModule()
     trainer.fit(autoencoder, dm)
