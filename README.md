@@ -25,6 +25,8 @@ module load python_gpu/3.8.5
 # pip install --user tk-tools
 module load tk/8.6.6
 module load hdf5/1.10.1
+module load eth_proxy
+export MegaDepthDatasetPath=/your/path/comes/here/
 ```
 Then, you can open tensorboard and pass a free port. You can also try to leave out the port and copy the one it gives you.
 ```

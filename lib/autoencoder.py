@@ -12,7 +12,7 @@ from lib.tf_weight_loader import mapping as default_mapping
 
 
 class FeatureEncoder(LightningModule):
-    def __init__(self, load_tf_weights=False):
+    def __init__(self, load_tf_weights=True):
         super().__init__()
 
         self.resnet = torchvision.models.resnet50(
@@ -23,14 +23,14 @@ class FeatureEncoder(LightningModule):
             weight_loader = load_weights.WeightLoader(mapping=mapping)
             self.resnet = weight_loader.set_torch_model(self.resnet)
 
-        self.encoded_channels = 16
+        self.encoded_channels = 32
 
         self.stages = ('early', 'middle', 'deep')
 
         self.input_channels = {
-            'early': 128,
-            'middle': 256,
-            'deep': 512,
+            'early': 512,
+            'middle': 1024,
+            'deep': 2048,
         }
 
         self.resnet_extractor = ResnetActivationExtractor(self.resnet)
@@ -135,9 +135,9 @@ class FeatureEncoder(LightningModule):
             'middle': lambda x: x,
             'deep': nn.Upsample(scale_factor=2, mode="bilinear", align_corners=True),
         }
-        return {'early': activation_transform['early'](activations["layer2_conv1"]),
-                'middle': activation_transform['middle'](activations["layer3_conv1"]),
-                'deep': activation_transform['deep'](activations["layer4_conv1"])}
+        return {'early': activation_transform['early'](activations["layer2_conv3"]),
+                'middle': activation_transform['middle'](activations["layer3_conv3"]),
+                'deep': activation_transform['deep'](activations["layer4_conv3"])}
 
 
 if __name__ == "__main__":
