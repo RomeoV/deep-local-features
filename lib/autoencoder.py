@@ -12,7 +12,7 @@ from lib.tf_weight_loader import mapping as default_mapping
 
 
 class FeatureEncoder(LightningModule):
-    def __init__(self, load_tf_weights=True):
+    def __init__(self, load_tf_weights=False):
         super().__init__()
 
         self.resnet = torchvision.models.resnet50(
@@ -72,6 +72,16 @@ class FeatureEncoder(LightningModule):
                 # nn.Sigmoid(),
             ),
         }
+
+        # we need this such that the encoders get tranfered to gpu automatically
+        self.e1 = self.encoder['early']
+        self.e2 = self.encoder['middle']
+        self.e3 = self.encoder['deep']
+
+
+        self.d1 = self.decoder['early']
+        self.d2 = self.decoder['middle']
+        self.d3 = self.decoder['deep']
 
     def forward(self, x):
         x = self.get_resnet_layers(x)
