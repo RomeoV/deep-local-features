@@ -7,7 +7,7 @@ from torch.nn import functional as F
 import pytorch_lightning
 
 from lib.loss import *
-from lib.autoencoder import FeatureEncoder
+from lib.autoencoder import *
 
 class AttentionLayer(LightningModule):
     def __init__(self, feature_encoder):
@@ -104,8 +104,8 @@ class MultiAttentionLayer(LightningModule):
 
         loss = torch.tensor(np.array([0], dtype=np.float32))
 
-        for layer in y1_encoded.keys():
-            loss = loss +  self.loss(x1_encoded[layer], x2_encoded[layer], y1[layer], y2[layer], correspondence)
+        for layer in x1_encoded.keys():
+            loss = loss +  self.loss(x1_encoded[layer], x2_encoded[layer], y1[layer], y2[layer], batch)
         
         self.log('train_loss', loss)
         return loss
@@ -125,8 +125,8 @@ class MultiAttentionLayer(LightningModule):
 
         loss = torch.tensor(np.array([0], dtype=np.float32))
 
-        for layer in y1_encoded.keys():
-            loss = loss +  self.loss(x1_encoded[layer], x2_encoded[layer], y1[layer], y2[layer], correspondence)
+        for layer in x1_encoded.keys():
+            loss = loss +  self.loss(x1_encoded[layer], x2_encoded[layer], y1[layer], y2[layer], batch)
 
         self.log('validation_loss', loss)
         return loss
@@ -137,8 +137,9 @@ class MultiAttentionLayer(LightningModule):
         return optimizer
 
 if __name__ == "__main__":
-    autoencoder = FeatureEncoder()
+    autoencoder = FeatureEncoder1.load_from_checkpoint("lightning_logs/version_2/checkpoints/epoch=50-step=7394.ckpt").requires_grad_(False)
     attentions = MultiAttentionLayer(autoencoder)
-    trainer = pytorch_lightning.Trainer(gpus=1 if torch.cuda.is_available() else None)
+    tb_logger = TensorBoardLogger('tb_logs', name='attention_module')
+    trainer = pytorch_lightning.Trainer(logger=tb_logger, gpus=1 if torch.cuda.is_available() else None)
     dm = CorrespondenceDataModule()
     trainer.fit(attentions, dm)
