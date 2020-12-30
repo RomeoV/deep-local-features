@@ -85,11 +85,11 @@ class MultiAttentionLayer(LightningModule):
     def forward(self, x):
         y = {}
         y["early"] = self.early_attentions(x["early"])
-        y["middle"] = self.early_attentions(x["middle"])
-        y["deep"] = self.early_attentions(x["deep"])
+        y["middle"] = self.middle_attentions(x["middle"])
+        y["deep"] = self.deep_attentions(x["deep"])
         return y
 
-    def validation_step(self, batch, batch_idx):
+    def training_step(self, batch, batch_idx):
         x1 = batch['image1']
         x2 = batch["image2"]
 
@@ -138,7 +138,6 @@ class MultiAttentionLayer(LightningModule):
 
 if __name__ == "__main__":
     autoencoder = FeatureEncoder()
-
     attentions = MultiAttentionLayer(autoencoder)
     trainer = pytorch_lightning.Trainer(gpus=1 if torch.cuda.is_available() else None)
     dm = CorrespondenceDataModule()

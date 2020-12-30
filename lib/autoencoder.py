@@ -73,6 +73,18 @@ class FeatureEncoder(LightningModule):
             ),
         }
 
+        self.upsampler = nn.Sequential(
+            nn.ConvTranspose2d(in_channels=self.input_channels['deep'],
+                                out_channels=self.input_channels['deep'], kernel_size=(1, 1), stride=2),
+            nn.ReLU(True)
+        )
+
+        self.downsampler = nn.Sequential(
+            nn.Conv2d(in_channels=self.input_channels['early'],
+                                out_channels=self.input_channels['early'], kernel_size=(1, 1), stride=2),
+            nn.ReLU(True)
+        )
+
         # we need this such that the encoders get tranfered to gpu automatically
         self.e1 = self.encoder['early']
         self.e2 = self.encoder['middle']
@@ -130,15 +142,19 @@ class FeatureEncoder(LightningModule):
     @torch.no_grad()
     def get_resnet_layers(self, x):
         activations = self.resnet_extractor(x)
+        # activation_transform = {
+        #     'early': nn.AvgPool2d(kernel_size=(2, 2), stride=(2, 2)),
+        #     'middle': lambda x: x,
+        #     'deep': nn.Upsample(scale_factor=2, mode="bilinear", align_corners=True),
+        # }
         activation_transform = {
-            'early': nn.AvgPool2d(kernel_size=(2, 2), stride=(2, 2)),
+            'early': self.downsampler,
             'middle': lambda x: x,
-            'deep': nn.Upsample(scale_factor=2, mode="bilinear", align_corners=True),
+            'deep': self.upsampler,
         }
         return {'early': activation_transform['early'](activations["layer2_conv1"]),
                 'middle': activation_transform['middle'](activations["layer3_conv1"]),
                 'deep': activation_transform['deep'](activations["layer4_conv1"])}
-
 
 if __name__ == "__main__":
     autoencoder = FeatureEncoder()
