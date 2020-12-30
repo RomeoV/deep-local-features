@@ -23,7 +23,7 @@ class TripletMarginLoss(nn.Module):
         self.scaling_steps = scaling_steps
         self.device = torch.device("cpu") #torch.device('cpu') if not torch.cuda.is_available() else 
 
-        self.plot = True
+        self.plot = False
 
     def forward(self, x1_encoded, x2_encoded, attentions1, attentions2, correspondences):
         loss = torch.tensor(np.array([0], dtype=np.float32))
@@ -144,8 +144,8 @@ class TripletMarginLoss(nn.Module):
             # We should put this in separate functions to visualize the attention maps
             pos1_aux = pos1.cpu().numpy()
             pos2_aux = pos2.cpu().numpy()
-            print(pos1_aux)
-            print(pos2_aux)
+            # print(pos1_aux)
+            # print(pos2_aux)
             k = pos1_aux.shape[1]
             col = np.random.rand(k, 3)
             n_sp = 4
