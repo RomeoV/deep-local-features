@@ -2,6 +2,7 @@ import os
 import torch.nn as nn
 from torch.utils.data import DataLoader, random_split
 import torchvision
+import multiprocessing
 import pytorch_lightning
 import multiprocessing
 from lib.megadepth_dataset import MegaDepthDataset
@@ -74,6 +75,7 @@ class CorrespondenceDataModule(pytorch_lightning.LightningDataModule):
         super().__init__()
         self.batch_size = batch_size
         self.num_workers = (multiprocessing.cpu_count() - 2) if multiprocessing.cpu_count() >= 4 else 1
+
         if base_path is None:
             self.base_path = os.environ['MegaDepthDatasetPath']
         else:
