@@ -21,12 +21,12 @@ class TripletMarginLoss(nn.Module):
         self.margin = margin
         self.safe_radius = safe_radius
         self.scaling_steps = scaling_steps
-        self.device = torch.device("cpu") #torch.device('cpu') if not torch.cuda.is_available() else 
+        self.device = torch.device('cuda' if torch.cuda.is_available() else "cpu") #torch.device('cpu') if not torch.cuda.is_available() else 
 
         self.plot = False
 
     def forward(self, x1_encoded, x2_encoded, attentions1, attentions2, correspondences):
-        loss = torch.tensor(np.array([0], dtype=np.float32))
+        loss = torch.tensor(np.array([0], dtype=np.float32), device = self.device)
         #ToDo: only count valid samples!
         for idx in range(x1_encoded.shape[0]):
             loss += self.triplet_margin_loss(x1_encoded, x2_encoded, attentions1, attentions2, correspondences, idx)
@@ -43,20 +43,22 @@ class TripletMarginLoss(nn.Module):
         idx: batch index (basically loop over all images in the batch)
         out: scalar tensor (1)
         """
-        loss = torch.tensor(np.array([0], dtype=np.float32))
-        
-        depth1 = correspondences['depth1'][idx] # [h1, w1]???
-        intrinsics1 = correspondences['intrinsics1'][idx]  # [3, 3]
-        pose1 = correspondences['pose1'][idx].view(4, 4)  # [4, 4]
-        bbox1 = correspondences['bbox1'][idx]  # [2]
 
-        depth2 = correspondences['depth2'][idx]
-        intrinsics2 = correspondences['intrinsics2'][idx]
-        pose2 = correspondences['pose2'][idx].view(4, 4)
-        bbox2 = correspondences['bbox2'][idx]
+        
+        loss = torch.tensor(np.array([0], dtype=np.float32), device=self.device)
+        depth1 = correspondences['depth1'][idx].to(self.device) # [h1, w1]???
+        intrinsics1 = correspondences['intrinsics1'][idx].to(self.device)  # [3, 3]
+        pose1 = correspondences['pose1'][idx].view(4, 4).to(self.device)  # [4, 4]
+        bbox1 = correspondences['bbox1'][idx].to(self.device) # [2]
+
+        depth2 = correspondences['depth2'][idx].to(self.device)
+        intrinsics2 = correspondences['intrinsics2'][idx].to(self.device)
+        pose2 = correspondences['pose2'][idx].view(4, 4).to(self.device)
+        bbox2 = correspondences['bbox2'][idx].to(self.device)
         
 
         # Network output
+
         dense_features1 = x1_encoded[idx] #48x32x32
         c, h1, w1 = dense_features1.size()
         scores1 = attentions1[idx].view(-1) #1x1024 (ids format)
