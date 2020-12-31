@@ -23,8 +23,7 @@ dummy_mapping = {
 
 
 def main(argv):
-    weight_loader = load_weights.WeightLoader(
-        FLAGS.checkpoint_path, mapping=dummy_mapping)
+    weight_loader = load_weights.WeightLoader(mapping=dummy_mapping)
 
     if FLAGS.test_print_tensors:
         logging.info("Testing print tensor...")
@@ -38,16 +37,14 @@ def main(argv):
         logging.info("Testing mapping...")
         model = models.resnet50()
         mapping = default_mapping.get_default_mapping()
-        weight_loader = load_weights.WeightLoader(
-            FLAGS.checkpoint_path, mapping=mapping)
+        weight_loader = load_weights.WeightLoader(mapping=mapping)
         weight_loader.validate_mapping(model)
         logging.info("Testing mapping done!")
     if FLAGS.test_model:
         logging.info("Testing model...")
         model = models.resnet50()
         mapping = default_mapping.get_default_mapping()
-        weight_loader = load_weights.WeightLoader(
-            FLAGS.checkpoint_path, mapping=mapping)
+        weight_loader = load_weights.WeightLoader(mapping=mapping)
 
         model = weight_loader.set_torch_model(model)
         logging.info("Testing model done!")

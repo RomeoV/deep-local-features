@@ -2,19 +2,29 @@ from typing import Optional
 import tensorflow as tf
 import numpy as np
 from tensorflow.python.training import py_checkpoint_reader
+from tensorflow.python.keras.utils import data_utils
 import torch
+import os
+from shutil import copyfile
 
 from absl import flags
 from absl import logging
 
-flags.DEFINE_string("checkpoint_path", "/home/mark/Downloads/r50delg_gldv2clean_20200914/variables",
-                    "Path to the 'varables' directory of the extracted weights. IMPORTANT: Add the checkpoint file before")
-
 # Disclaimer: this code is largely adapted from the official [inspect_checkpoint.py](https://github.com/tensorflow/tensorflow/blob/master/tensorflow/python/tools/inspect_checkpoint.py)
+WEIGHTS_URL = "https://storage.googleapis.com/delf/r50delg_gldv2clean_20200914.tar.gz"
+DIR_NAME = "r50delg_gldv2clean_20200914"
 
 
 class WeightLoader:
-    def __init__(self, checkpoint: str, mapping={}) -> None:
+    def __init__(self, mapping={}) -> None:
+        checkpoint = data_utils.get_file(
+            DIR_NAME, WEIGHTS_URL, untar=True, extract=True, cache_subdir="deep_learning")
+        checkpoint = os.path.join(checkpoint, "variables")
+        checkpoint_file = os.path.join(checkpoint, "checkpoint")
+        if not os.path.isfile(checkpoint_file):
+            local_ckpt_file = os.path.join(
+                os.path.dirname(__file__), 'checkpoint')
+            copyfile(local_ckpt_file, checkpoint_file)
         ckpt_path = tf.train.latest_checkpoint(checkpoint)
         self.reader = py_checkpoint_reader.NewCheckpointReader(ckpt_path)
         self.mapping = mapping
