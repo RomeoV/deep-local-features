@@ -1,7 +1,7 @@
 import torch
 from torch import nn
 from pytorch_lightning.core.lightning import LightningModule
-
+from pytorch_lightning.loggers import TensorBoardLogger
 
 from torch.nn import functional as F
 import pytorch_lightning
@@ -78,15 +78,25 @@ class MultiAttentionLayer(LightningModule):
         self.feature_encoder = feature_encoder
         self.loss = TripletMarginLoss()
 
-        self.early_attentions = AttentionLayer(feature_encoder)
-        self.middle_attentions = AttentionLayer(feature_encoder)
-        self.deep_attentions = AttentionLayer(feature_encoder)
+        self.early_attentions = nn.Conv2d(in_channels=self.feature_encoder.encoded_channels, \
+                    out_channels=2, kernel_size=(1,1)) #bx2xWxH
+        self.middle_attentions = nn.Conv2d(in_channels=self.feature_encoder.encoded_channels, \
+                    out_channels=2, kernel_size=(1,1)) #bx2xWxH
+        self.deep_attentions = nn.Conv2d(in_channels=self.feature_encoder.encoded_channels, \
+                    out_channels=2, kernel_size=(1,1)) #bx2xWxH
+
+    def softmax(self, ux):
+        if ux.shape[1] == 1:
+            x = F.softplus(ux)
+            return x / (1 + x)  # for sure in [0,1], much less plateaus than softmax
+        elif ux.shape[1] == 2:
+            return F.softmax(ux, dim=1)[:,1:2]
 
     def forward(self, x):
         y = {}
-        y["early"] = self.early_attentions(x["early"])
-        y["middle"] = self.middle_attentions(x["middle"])
-        y["deep"] = self.deep_attentions(x["deep"])
+        y["early"] = self.softmax(self.early_attentions(x["early"]))
+        y["middle"] = self.softmax(self.middle_attentions(x["middle"]))
+        y["deep"] = self.softmax(self.deep_attentions(x["deep"]))
         return y
 
     def training_step(self, batch, batch_idx):
@@ -102,7 +112,7 @@ class MultiAttentionLayer(LightningModule):
         y1 = self.forward(x1_encoded)
         y2 = self.forward(x2_encoded)
 
-        loss = torch.tensor(np.array([0], dtype=np.float32))
+        loss = torch.tensor(np.array([0], dtype=np.float32), device='cuda' if torch.cuda.is_available() else "cpu")
 
         for layer in x1_encoded.keys():
             loss = loss +  self.loss(x1_encoded[layer], x2_encoded[layer], y1[layer], y2[layer], batch)
@@ -123,7 +133,7 @@ class MultiAttentionLayer(LightningModule):
         y1 = self.forward(x1_encoded)
         y2 = self.forward(x2_encoded)
 
-        loss = torch.tensor(np.array([0], dtype=np.float32))
+        loss = torch.tensor(np.array([0], dtype=np.float32), device='cuda' if torch.cuda.is_available() else "cpu")
 
         for layer in x1_encoded.keys():
             loss = loss +  self.loss(x1_encoded[layer], x2_encoded[layer], y1[layer], y2[layer], batch)
@@ -133,13 +143,13 @@ class MultiAttentionLayer(LightningModule):
 
 
     def configure_optimizers(self):
-        optimizer = torch.optim.Adam(self.parameters(), lr=1e-3)
+        optimizer = torch.optim.Adam(self.parameters(), lr=1e-4)
         return optimizer
 
 if __name__ == "__main__":
-    autoencoder = FeatureEncoder1.load_from_checkpoint("lightning_logs/version_2/checkpoints/epoch=50-step=7394.ckpt").requires_grad_(False)
+    autoencoder = FeatureEncoder1.load_from_checkpoint("lightning_logs/version_2/checkpoints/epoch=56-step=8264.ckpt").requires_grad_(False)
     attentions = MultiAttentionLayer(autoencoder)
-    tb_logger = TensorBoardLogger('tb_logs', name='attention_module')
+    tb_logger = TensorBoardLogger('tb_logs', name='attention_model')
     trainer = pytorch_lightning.Trainer(logger=tb_logger, gpus=1 if torch.cuda.is_available() else None)
     dm = CorrespondenceDataModule()
     trainer.fit(attentions, dm)
