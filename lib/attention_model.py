@@ -7,7 +7,10 @@ from torch.nn import functional as F
 import pytorch_lightning
 
 from lib.loss import *
+from lib.repeatability_loss import RepeatabilityLoss
 from lib.autoencoder import *
+
+REP_LOSS = True
 
 class AttentionLayer(LightningModule):
     def __init__(self, feature_encoder):
@@ -76,7 +79,10 @@ class MultiAttentionLayer(LightningModule):
     def __init__(self, feature_encoder):
         super().__init__()
         self.feature_encoder = feature_encoder
-        self.loss = TripletMarginLoss()
+        if (REP_LOSS):
+            self.loss = RepeatabilityLoss()
+        else:
+            self.loss = TripletMarginLoss()
 
         self.early_attentions = nn.Conv2d(in_channels=self.feature_encoder.encoded_channels, \
                     out_channels=2, kernel_size=(1,1)) #bx2xWxH
@@ -149,7 +155,10 @@ class MultiAttentionLayer(LightningModule):
 if __name__ == "__main__":
     autoencoder = FeatureEncoder1.load_from_checkpoint("lightning_logs/version_2/checkpoints/epoch=56-step=8264.ckpt").requires_grad_(False)
     attentions = MultiAttentionLayer(autoencoder)
-    tb_logger = TensorBoardLogger('tb_logs', name='attention_model')
+    if REP_LOSS:
+        tb_logger = TensorBoardLogger('tb_logs', name='attention_model_repeatability_loss')
+    else:
+        tb_logger = TensorBoardLogger('tb_logs', name='attention_model')
     trainer = pytorch_lightning.Trainer(logger=tb_logger, gpus=1 if torch.cuda.is_available() else None)
     dm = CorrespondenceDataModule()
     trainer.fit(attentions, dm)
