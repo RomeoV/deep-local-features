@@ -3,3 +3,7 @@
 *.pyc
 .idea/
 *.pbtxt
+*.ignore*
+lsf*
+tb_logs/
+lightning_logs/

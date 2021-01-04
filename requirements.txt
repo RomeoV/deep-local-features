@@ -2,17 +2,21 @@ python = 3.7
 pytorch::pytorch
 pytorch::torchvision
 conda-forge::pytorch-lightning
-jupyterlab
-opencv
-h5py
-pillow
-matplotlib
-numpy
-tqdm
-scipy
-imageio
-absl-py
-receptivefield>=0.5.0
+conda-forge::jupyterlab
+conda-forge::opencv # might downgrade torchvision and h5py
+conda-forge::h5py
+conda-forge::pillow
+conda-forge::matplotlib
+conda-forge::ipywidgets
+
+# pip install tensorflow-gpu
+
+
+#numpy
+#tqdm
+#scipy
+#imageio
+#absl-py
 
 # torch
 # torchvision
