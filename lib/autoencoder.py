@@ -13,8 +13,19 @@ from lib.tf_weight_loader import mapping as default_mapping
 
 
 class FeatureEncoder(LightningModule):
-    def __init__(self, load_tf_weights=True):
+    @staticmethod
+    def _get_default_config():
+        config = {
+                "encoded_channels": 32,
+                "lr": 1e-3,
+        }
+        return config
+
+    def __init__(self, config_={}, load_tf_weights=True):
         super().__init__()
+
+        self.config = FeatureEncoder._get_default_config()
+        self.config.update(config_)  # Default params overwritten by input params
 
         self.resnet = torchvision.models.resnet50(
             pretrained=True).eval().requires_grad_(False)
@@ -24,7 +35,7 @@ class FeatureEncoder(LightningModule):
             weight_loader = load_weights.WeightLoader(mapping=mapping)
             self.resnet = weight_loader.set_torch_model(self.resnet)
 
-        self.encoded_channels = 32
+        self.encoded_channels = self.config["encoded_channels"]
 
         self.stages = ('early', 'middle', 'deep')
 
@@ -132,12 +143,16 @@ class FeatureEncoder(LightningModule):
 
         loss = sum((F.mse_loss(x[s], x_hat[s]) for s in self.stages))
 
-        self.log('validation_loss', loss)
+        self.log('val_loss', loss)
 
         return loss
 
+    def validation_epoch_end(self, outputs):
+        avg_loss = torch.stack(outputs).mean()
+        self.log("ptl/val_loss", avg_loss)
+
     def configure_optimizers(self):
-        optimizer = torch.optim.Adam(self.parameters(), lr=1e-3)
+        optimizer = torch.optim.Adam(self.parameters(), lr=self.config["lr"])
         return optimizer
 
     @torch.no_grad()
