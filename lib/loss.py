@@ -207,7 +207,7 @@ class DistinctivenessLoss(nn.Module):
         self.device = torch.device('cuda' if torch.cuda.is_available() else "cpu") #torch.device('cpu') if not torch.cuda.is_available() else 
         
         self.tau = 0.25
-        self.K = 512
+        self.K = 128
 
         self.plot = False
     
@@ -234,7 +234,7 @@ class DistinctivenessLoss(nn.Module):
         """
 
         
-        loss = torch.tensor(np.array([0], dtype=np.float32), device=self.device)
+        #loss = torch.tensor(np.array([0], dtype=np.float32), device=self.device)
         depth1 = correspondences['depth1'][idx].to(self.device) # [h1, w1]???
         intrinsics1 = correspondences['intrinsics1'][idx].to(self.device)  # [3, 3]
         pose1 = correspondences['pose1'][idx].view(4, 4).to(self.device)  # [4, 4]
@@ -292,6 +292,9 @@ class DistinctivenessLoss(nn.Module):
             dim=0
         )
         scores2 = scores2[fmap_pos2[0, :], fmap_pos2[1, :]].view(-1)
+
+        indices1 = torch.randperm(all_descriptors1.shape[1], device = self.device)[self.K]
+        indices2 = torch.randperm(all_descriptors2.shape[1], device = self.device)[self.K]
         
         distances1 = torch.cdist(descriptors1.t(), all_descriptors2.t()) #shape (338x1024)
         distances2 = torch.cdist(descriptors2.t(), all_descriptors1.t()) #shape (338x1024)

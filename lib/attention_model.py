@@ -239,7 +239,7 @@ if __name__ == "__main__":
     if REP_LOSS:
         tb_logger = TensorBoardLogger('tb_logs', name='attention_model_repeatability_loss')
     else:
-        tb_logger = TensorBoardLogger('tb_logs', name='attention_model_delf_distinctiveness_loss')
+        tb_logger = TensorBoardLogger('tb_logs', name='fe1_attention_model_delf_sum_distinctiveness_loss')
     trainer = pytorch_lightning.Trainer(logger=tb_logger, gpus=1 if torch.cuda.is_available() else None)
     dm = CorrespondenceDataModule()
     trainer.fit(attentions, dm)

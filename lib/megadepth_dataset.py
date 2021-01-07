@@ -66,7 +66,7 @@ class MegaDepthDataset(Dataset):
             print('Building the validation dataset...')
         else:
             print('Building a new training dataset...')
-        for scene in tqdm(self.scenes, total=len(self.scenes)):
+        for scene in tqdm(self.scenes[:2], total=len(self.scenes[:2])):
             scene_info_path = os.path.join(
                 self.scene_info_path, '%s.npz' % scene
             )
