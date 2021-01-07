@@ -198,17 +198,44 @@ class TripletMarginLoss(nn.Module):
 
 
 
+class PeakyLoss (nn.Module):
+    """ Try to make the repeatability locally peaky.
+    Mechanism: we maximize, for each pixel, the difference between the local mean
+               and the local max.
+    """
+    def __init__(self, N=16):
+        nn.Module.__init__(self)
+        self.name = f'peaky{N}'
+        assert N % 2 == 0, 'N must be pair'
+        self.preproc = nn.AvgPool2d(3, stride=1, padding=1)
+        self.maxpool = nn.MaxPool2d(N+1, stride=1, padding=N//2)
+        self.avgpool = nn.AvgPool2d(N+1, stride=1, padding=N//2)
+
+    def forward_one(self, sali):
+        sali = self.preproc(sali) # remove super high frequency
+        return 1 - (self.maxpool(sali) - self.avgpool(sali)).mean()
+
+    def forward(self, repeatability, **kw):
+        sali1, sali2 = repeatability
+        return (self.forward_one(sali1) + self.forward_one(sali2)) /2
+
 class DistinctivenessLoss(nn.Module):
-    def __init__(self, margin=1, safe_radius=4, scaling_steps=3):
+    def __init__(self, margin=1, safe_radius=4, scaling_steps=3, N=16):
         super().__init__()
         self.margin = margin
         self.safe_radius = safe_radius
         self.scaling_steps = scaling_steps
-        self.device = torch.device('cuda' if torch.cuda.is_available() else "cpu") #torch.device('cpu') if not torch.cuda.is_available() else 
+        self.device = torch.device('cuda' if not torch.cuda.is_available() else "cpu") #torch.device('cpu') if not torch.cuda.is_available() else 
         
         self.tau = 0.25
         self.K = 512
 
+        self.name = f'peaky_dist{N}'
+        assert N % 2 == 0, 'N must be pair'
+        self.preproc = nn.AvgPool2d(3, stride=1, padding=1)
+        self.maxpool = nn.MaxPool2d(N+1, stride=1, padding=N//2)
+        self.avgpool = nn.AvgPool2d(N+1, stride=1, padding=N//2)
+        self.lambda_peaky = 0.7
         self.plot = False
     
     def forward(self, x1_encoded, x2_encoded, attentions1, attentions2, correspondences):
@@ -220,7 +247,24 @@ class DistinctivenessLoss(nn.Module):
             if l is not None:
                 loss += l
                 n_valid += 1.0
-        return loss / n_valid
+        loss = loss / n_valid + self.lambda_peaky * (self.peaky_loss(attentions1) + self.peaky_loss(attentions2)) / 2.0
+        return loss
+
+    def pick_K_in_each_row(self, distances):
+        n, d = distances.shape
+
+        rand_mat = torch.rand(n, d)
+        k_th_quant = torch.topk(rand_mat, self.K, largest = False)[0][:,-1:]
+        mask = rand_mat <= k_th_quant
+
+        return torch.masked_select(distances, mask).view(n,self.K)
+
+    def peaky_loss(self, attentions):
+        """
+        Measures distinctiveness within one image
+        """
+        sali = self.preproc(attentions) # remove super high frequency
+        return 1 - (self.maxpool(sali) - self.avgpool(sali)).mean()
     
     def distinctiveness_loss(self, x1_encoded, x2_encoded, attentions1, attentions2, correspondences, idx):
         """
@@ -296,8 +340,11 @@ class DistinctivenessLoss(nn.Module):
         distances1 = torch.cdist(descriptors1.t(), all_descriptors2.t()) #shape (338x1024)
         distances2 = torch.cdist(descriptors2.t(), all_descriptors1.t()) #shape (338x1024)
         
-        mx1 = torch.sum(distances1 < self.margin,1) - 1.0
-        mx2 = torch.sum(distances2 < self.margin,1) - 1.0
+        distances1 = self.pick_K_in_each_row(distances1).to(self.device)
+        distances2 = self.pick_K_in_each_row(distances2).to(self.device)
+
+        mx1 = torch.sum(distances1 < self.margin,1)
+        mx2 = torch.sum(distances2 < self.margin,1)
         
         target1 = 1.0 / (1.0 + mx1)**self.tau
         target2 = 1.0 / (1.0 + mx2)**self.tau
@@ -305,3 +352,4 @@ class DistinctivenessLoss(nn.Module):
         loss = torch.mean(torch.abs(scores1 - target1)) + torch.mean(torch.abs(scores2 - target2))
         
         return loss
+
