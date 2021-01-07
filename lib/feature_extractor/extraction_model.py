@@ -1,3 +1,5 @@
+from hashlib import scrypt
+from numpy.core.numeric import indices
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
@@ -9,15 +11,19 @@ import matplotlib.pyplot as plt
 
 
 class ExtractionModel(nn.Module):
-    def __init__(self, extraction_model, attention_model, thresh=0.0, max_features=None, use_d2net_detection=False) -> None:
+    def __init__(self, attention_model, thresh=0.0, max_features=None, use_d2net_detection=False, num_upsampling=4) -> None:
         super().__init__()
-        self._extraction_model = extraction_model
+        self._extraction_model = attention_model.feature_encoder
 
         self.localization = localization.HandcraftedLocalizationModule()
         self.detection = DetectionModule(
-            attention_model, thresh, max_features) if not use_d2net_detection else localization.HardDetectionModule()
+            attention_model) if not use_d2net_detection else localization.HardDetectionModule()
         self._use_d2net_detection = use_d2net_detection
         self.extraction = lambda x: self._extraction_model(x)
+        self._num_upsampling = num_upsampling
+
+        self._thresh = thresh
+        self._max_features = max_features
 
     def forward(self, images: torch.Tensor):
         n, _, h, w = images.size()
@@ -31,7 +37,6 @@ class ExtractionModel(nn.Module):
         if self._use_d2net_detection:
             dense_features = [early, middle, deep]
             detections = [self.detection(df) for df in dense_features]
-            print(detections[0])
         else:
             detections = self.detection(dense_features)
         dense_features = [early, middle, deep]
@@ -79,7 +84,7 @@ class ExtractionModel(nn.Module):
         fmap_keypoints = [fmap_keypoints[i][:, ids[i]] for i in range(3)]
 
         keypoints = [utils.upscale_positions(
-            k, scaling_steps=4) for k in fmap_keypoints]
+            k, scaling_steps=self._num_upsampling) for k in fmap_keypoints]
         # for i in range(3):
         #     keypoints[i][0, :] *= h / h_map * 0.25
         #     keypoints[i][1, :] *= w / w_map * 0.25
@@ -88,7 +93,7 @@ class ExtractionModel(nn.Module):
 
         score_extraction_input = detections if not self._use_d2net_detection else dense_features
         scores = [
-            F.normalize(score_extraction_input[i][0, fmap_pos[i][0, :], fmap_pos[i][1, :], fmap_pos[i][2, :]], dim=0) for i in range(3)
+            score_extraction_input[i][0, fmap_pos[i][0, :], fmap_pos[i][1, :], fmap_pos[i][2, :]] for i in range(3)
         ]
 
         keypoints = [k.t() for k in keypoints]
@@ -98,39 +103,36 @@ class ExtractionModel(nn.Module):
         descriptors = torch.cat(descriptors)
 
         scores = torch.cat(scores)
+        scores, idx = torch.sort(scores, descending=True)
+        descriptors = descriptors[idx, :]
+        keypoints = keypoints[idx, :]
 
-        return keypoints.detach(), descriptors, scores
+        if self._thresh != 0 or self._max_features is not None:
+            mask = scores >= self._thresh
+            scores = scores[mask]
+            descriptors = descriptors[mask, :]
+            keypoints = keypoints[mask, :]
+
+            if self._max_features is not None and scores.size()[0] > self._max_features:
+                scores = scores[:self._max_features]
+                keypoints = keypoints[:self._max_features, :]
+                descriptors = descriptors[:self._max_features, :]
+
+        keypoints = keypoints.detach()
+        keypoints = keypoints[:, [1, 0]]  # To work with cv indexing
+        return keypoints, descriptors, scores
 
 
 class DetectionModule(nn.Module):
-    def __init__(self, attention_model, thresh=0.0, max_features=None) -> None:
+    def __init__(self, attention_model) -> None:
         super().__init__()
         self._attention_model = attention_model
-        self._thresh = thresh
-        self._max_features = max_features
 
     def forward(self, encoded_features):
         scores = self._attention_model(encoded_features)
         early = scores['early']
         middle = scores['middle']
         deep = scores['deep']
-        # TODO normalize
-        if self._max_features is not None:
-            all_scores = torch.cat([
-                torch.flatten(early),
-                torch.flatten(middle),
-                torch.flatten(deep)
-            ])
-            if self._max_features >= all_scores.size()[0]:
-                self._thresh = 0
-            else:
-                all_scores = torch.sort(all_scores, descending=True).values
-                print(all_scores.size())
-                self._thresh = all_scores[self._max_features]
-
-        early[early < self._thresh] = 0
-        middle[middle < self._thresh] = 0
-        deep[deep < self._thresh] = 0
 
         return early, middle, deep
 
