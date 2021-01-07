@@ -27,8 +27,10 @@ class RepeatabilityLoss(nn.Module):
         return loss / attentions1.shape[0]
 
     def total_loss(self, x1_encoded, x2_encoded, attentions1, attentions2, correspondences, idx):
-        return self.cosim_loss(x1_encoded, x2_encoded, attentions1, attentions2, correspondences, idx) + LAMBDA * (
+        loss = self.cosim_loss(x1_encoded, x2_encoded, attentions1, attentions2, correspondences, idx) + LAMBDA * (
                     self.peaky_loss(attentions1[idx]) + self.peaky_loss(attentions2[idx]))
+        loss = loss.to(self.device)
+        return loss
 
     def cosim_loss(self, x1_encoded, x2_encoded, attentions1, attentions2, correspondences, idx):
 
@@ -137,5 +139,6 @@ class RepeatabilityLoss(nn.Module):
         return torch.unsqueeze(cosim, 0)
 
     def peaky_loss(self, tensor):
+        tensor = tensor.to(self.device)
         scalar = torch.tensor(1., device=self.device) - (torch.max(tensor) - torch.mean(tensor))
         return torch.unsqueeze(scalar, 0)
