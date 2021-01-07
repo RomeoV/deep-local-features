@@ -225,7 +225,7 @@ class DistinctivenessLoss(nn.Module):
         self.margin = margin
         self.safe_radius = safe_radius
         self.scaling_steps = scaling_steps
-        self.device = torch.device('cuda' if not torch.cuda.is_available() else "cpu") #torch.device('cpu') if not torch.cuda.is_available() else 
+        self.device = torch.device('cuda' if torch.cuda.is_available() else "cpu") #torch.device('cpu') if not torch.cuda.is_available() else 
         
         self.tau = 0.25
         self.K = 128
