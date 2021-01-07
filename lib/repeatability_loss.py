@@ -33,16 +33,16 @@ class RepeatabilityLoss(nn.Module):
     def cosim_loss(self, x1_encoded, x2_encoded, attentions1, attentions2, correspondences, idx):
 
         ########### warping
+        loss = torch.tensor(np.array([0], dtype=np.float32), device=self.device)
+        depth1 = correspondences['depth1'][idx].to(self.device) # [h1, w1]???
+        intrinsics1 = correspondences['intrinsics1'][idx].to(self.device)  # [3, 3]
+        pose1 = correspondences['pose1'][idx].view(4, 4).to(self.device)  # [4, 4]
+        bbox1 = correspondences['bbox1'][idx].to(self.device) # [2]
 
-        depth1 = correspondences['depth1'][idx]  # [h1, w1]???
-        intrinsics1 = correspondences['intrinsics1'][idx]  # [3, 3]
-        pose1 = correspondences['pose1'][idx].view(4, 4)  # [4, 4]
-        bbox1 = correspondences['bbox1'][idx]  # [2]
-
-        depth2 = correspondences['depth2'][idx]
-        intrinsics2 = correspondences['intrinsics2'][idx]
-        pose2 = correspondences['pose2'][idx].view(4, 4)
-        bbox2 = correspondences['bbox2'][idx]
+        depth2 = correspondences['depth2'][idx].to(self.device)
+        intrinsics2 = correspondences['intrinsics2'][idx].to(self.device)
+        pose2 = correspondences['pose2'][idx].view(4, 4).to(self.device)
+        bbox2 = correspondences['bbox2'][idx].to(self.device)
 
         # Network output
         dense_features1 = x1_encoded[idx]  # 48x32x32
@@ -80,7 +80,7 @@ class RepeatabilityLoss(nn.Module):
 
         # Skip the pair if not enough GT correspondences are available
         if ids.size(0) < 128:
-            return
+            return loss
 
             # Descriptors at the corresponding positions
         fmap_pos2 = torch.round(
@@ -132,10 +132,10 @@ class RepeatabilityLoss(nn.Module):
 
         ###################### warping done
 
-        cosim = 1. - nn.CosineSimilarity(dim=0)(scores1, scores2)
+        cosim = torch.tensor(1., device=self.device) - nn.CosineSimilarity(dim=0)(scores1, scores2)
 
         return torch.unsqueeze(cosim, 0)
 
     def peaky_loss(self, tensor):
-        scalar = 1. - (torch.max(tensor) - torch.mean(tensor))
+        scalar = torch.tensor(1., device=self.device) - (torch.max(tensor) - torch.mean(tensor))
         return torch.unsqueeze(scalar, 0)
