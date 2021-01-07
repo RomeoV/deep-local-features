@@ -51,10 +51,10 @@ class FeatureExtractor:
 
 
 def main_tests():
-    encoder = autoencoder.FeatureEncoder1(load_tf_weights=True)
-    extractor = FeatureExtractor(encoder, [43, 99, 355], [
-                                 8, 8, 8], [17, 49, 145])
-    image = torch.rand(size=(1, 3, 480, 640))
+    encoder = autoencoder.FeatureEncoder(load_tf_weights=True)
+    extractor = FeatureExtractor(encoder, [59, 131, 419], [
+                                 16, 16, 16], [25, 65, 177])
+    image = torch.rand(size=(1, 3, 512, 1024))
 
     centers, features, scores = extractor.forward(image)
 
