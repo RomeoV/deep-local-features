@@ -120,7 +120,7 @@ class ExtractionModel(nn.Module):
 
         keypoints = keypoints.detach()
         keypoints = keypoints[:, [1, 0]]  # To work with cv indexing
-        return keypoints, descriptors, scores
+        return keypoints, descriptors.detach(), scores.detach(), [d.detach().numpy()[0, 0, :, :] for d in detections]
 
 
 class DetectionModule(nn.Module):
