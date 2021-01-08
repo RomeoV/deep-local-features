@@ -16,6 +16,8 @@ class ResnetActivationExtractor:
                 self.activations[name] = output.detach() # .squeeze(0)
             return hook
         for l in [1,2,3,4]:
+            if (conv_layer is None):
+                self.net.__dict__['_modules'][f"layer{l}"].register_forward_hook(get_activation(f"layer{l}"))
             if (conv_layer == 3):
                 self.net.__dict__['_modules'][f"layer{l}"][0].conv3.register_forward_hook(get_activation(f"layer{l}_conv3"))
             if (conv_layer == 1):

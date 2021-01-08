@@ -228,7 +228,7 @@ class DistinctivenessLoss(nn.Module):
         self.device = torch.device('cuda' if torch.cuda.is_available() else "cpu") #torch.device('cpu') if not torch.cuda.is_available() else 
         
         self.tau = 0.25
-        self.K = 128
+        self.K = 512
 
         self.name = f'peaky_dist{N}'
         assert N % 2 == 0, 'N must be pair'
@@ -250,12 +250,17 @@ class DistinctivenessLoss(nn.Module):
         loss = loss / n_valid + self.lambda_peaky * (self.peaky_loss(attentions1) + self.peaky_loss(attentions2)) / 2.0
         return loss
 
-    def pick_K_in_each_row(self, distances):
+    def pick_K_in_each_row(self, distances, safe = True):
         n, d = distances.shape
 
-        rand_mat = torch.rand(n, d)
-        k_th_quant = torch.topk(rand_mat, self.K, largest = False)[0][:,-1:]
-        mask = rand_mat <= k_th_quant
+        if safe:
+            sample = torch.cat([torch.randperm(d)[:self.K] for _ in range(n)]).view(n, self.K)
+            mask = torch.zeros(n, d, dtype=torch.bool)
+            mask.scatter_(dim=1, index=sample, value=True)
+        else:
+            rand_mat = torch.rand(n, d)
+            k_th_quant = torch.topk(rand_mat, self.K, largest = False)[0][:,-1:]
+            mask = rand_mat <= k_th_quant
 
         return torch.masked_select(distances, mask).view(n,self.K)
 
@@ -343,8 +348,8 @@ class DistinctivenessLoss(nn.Module):
         distances1 = torch.cdist(descriptors1.t(), all_descriptors2.t()) #shape (338x1024)
         distances2 = torch.cdist(descriptors2.t(), all_descriptors1.t()) #shape (338x1024)
         
-        distances1 = self.pick_K_in_each_row(distances1).to(self.device)
-        distances2 = self.pick_K_in_each_row(distances2).to(self.device)
+        # distances1 = self.pick_K_in_each_row(distances1).to(self.device)
+        # distances2 = self.pick_K_in_each_row(distances2).to(self.device)
 
         mx1 = torch.sum(distances1 < self.margin,1)
         mx2 = torch.sum(distances2 < self.margin,1)

@@ -71,7 +71,7 @@ class AttentionLayer(LightningModule):
 
 
     def configure_optimizers(self):
-        optimizer = torch.optim.Adam(self.parameters(), lr=1e-3)
+        optimizer = torch.optim.Adam(self.parameters(), lr=1e-4)
         return optimizer
 
     def concat_layers(self, x_dict):
@@ -80,7 +80,6 @@ class AttentionLayer(LightningModule):
     def sum_layers(self, x_dict):
         return x_dict["early"] + x_dict["middle"] + x_dict["deep"] #bx48xWxH
 
-
 class AttentionLayer2(LightningModule):
     def __init__(self, feature_encoder):
         super().__init__()
@@ -88,9 +87,9 @@ class AttentionLayer2(LightningModule):
         self.loss = DistinctivenessLoss()
 
         self.conv1 = nn.Conv2d(in_channels=self.feature_encoder.encoded_channels, \
-                    out_channels=16, kernel_size=(1,1)) #bx2xWxH
-        self.activation = nn.ReLU()
-        self.conv2 = nn.Conv2d(in_channels=16, \
+                    out_channels=512, kernel_size=(1,1)) #bx2xWxH
+        self.activation = nn.ReLU(True)
+        self.conv2 = nn.Conv2d(in_channels=512, \
                     out_channels=1, kernel_size=(1,1)) #bx2xWxH
         
         self.agg = nn.Softplus(beta=1, threshold=20)
@@ -147,7 +146,7 @@ class AttentionLayer2(LightningModule):
 
 
     def configure_optimizers(self):
-        optimizer = torch.optim.Adam(self.parameters(), lr=1e-3)
+        optimizer = torch.optim.Adam(self.parameters(), lr=1e-4)
         return optimizer
 
     def concat_layers(self, x_dict):
@@ -239,7 +238,7 @@ if __name__ == "__main__":
     if REP_LOSS:
         tb_logger = TensorBoardLogger('tb_logs', name='attention_model_repeatability_loss')
     else:
-        tb_logger = TensorBoardLogger('tb_logs', name='fe1_attention_model_delf_sum_distinctiveness_loss')
+        tb_logger = TensorBoardLogger('tb_logs', name='fe1_attention_model_delf_sum_distinctiveness+_loss')
     trainer = pytorch_lightning.Trainer(logger=tb_logger, gpus=1 if torch.cuda.is_available() else None)
     dm = CorrespondenceDataModule()
     trainer.fit(attentions, dm)
