@@ -1,11 +1,11 @@
-# Improving Scale- and Viewpoint Invariance of Learned LocalFeatures
+#Improving Scale- and Viewpoint Invariance of Learned LocalFeatures
 
 ### Setup
 Create a new conda environment and install the packages from *requirements.txt*
 ```bash
 conda create -n DL
-conda install --file requirements.txt
 conda activate DL
+conda install --file requirements.txt
 ```
 
 ### Run your .py files in lib
