@@ -34,17 +34,21 @@ class ExtractionModel(nn.Module):
         deep = dense_features['deep']
         n, _, h_map, w_map = early.size()
 
+        detections = None
+        displacements_input = None
         if self._use_d2net_detection:
             dense_features = [early, middle, deep]
+            displacements_input = dense_features
             detections = [self.detection(df) for df in dense_features]
         else:
             detections = self.detection(dense_features)
+            displacements_input = detections
         dense_features = [early, middle, deep]
 
         fmap_pos = [torch.nonzero(d[0].cpu()).t() for d in detections]
 
-        displacements = [self.localization(features)[0].cpu() for features in [
-            early, middle, deep]]
+        displacements = [self.localization(
+            features)[0].cpu() for features in displacements_input]
 
         displacements_i = [displacements[i][
             0, fmap_pos[i][0, :], fmap_pos[i][1, :], fmap_pos[i][2, :]
