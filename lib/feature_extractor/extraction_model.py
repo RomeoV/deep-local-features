@@ -11,7 +11,7 @@ import matplotlib.pyplot as plt
 
 
 class ExtractionModel(nn.Module):
-    def __init__(self, attention_model, thresh=0.0, max_features=None, use_d2net_detection=False, num_upsampling=4) -> None:
+    def __init__(self, attention_model, thresh=0.0, max_features=None, use_d2net_detection=False, num_upsampling=4, use_nms=True) -> None:
         super().__init__()
         self._extraction_model = attention_model.feature_encoder
 
@@ -24,6 +24,13 @@ class ExtractionModel(nn.Module):
 
         self._thresh = thresh
         self._max_features = max_features
+        self._use_nms = use_nms
+        self._max_pool = nn.MaxPool2d(kernel_size=3, stride=1, padding=1)
+
+    def nms(self, x):
+        lmax = self._max_pool(x)
+        x[lmax != x] = 0
+        return x
 
     def forward(self, images: torch.Tensor):
         n, _, h, w = images.size()
@@ -43,6 +50,8 @@ class ExtractionModel(nn.Module):
         else:
             detections = self.detection(dense_features)
             displacements_input = detections
+            if self._use_nms:
+                detections = [self.nms(d) for d in detections]
         dense_features = [early, middle, deep]
 
         fmap_pos = [torch.nonzero(d[0].cpu()).t() for d in detections]
@@ -124,6 +133,7 @@ class ExtractionModel(nn.Module):
 
         keypoints = keypoints.detach()
         keypoints = keypoints[:, [1, 0]]  # To work with cv indexing
+
         return keypoints, descriptors.detach(), scores.detach(), [d.detach().numpy()[0, 0, :, :] for d in detections]
 
 
