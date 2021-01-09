@@ -49,6 +49,8 @@ class ExtractionModel(nn.Module):
             detections = [self.detection(df) for df in dense_features]
         else:
             detections = self.detection(dense_features)
+            # for i,d in enumerate(detections):
+            #     detections[i][d < self._thresh] = 0
             displacements_input = detections
             if self._use_nms:
                 detections = [self.nms(d) for d in detections]
