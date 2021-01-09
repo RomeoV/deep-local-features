@@ -87,7 +87,7 @@ print(args)
 encoder = autoencoder.FeatureEncoder1.load_from_checkpoint('/home/witi/Downloads/autoenc.ckpt', load_tf_weights=False).eval()
 attention = attention_model.MultiAttentionLayer.load_from_checkpoint('/home/witi/Downloads/attention.ckpt', feature_encoder=encoder).eval()
 
-extraction_model = em.ExtractionModel(attention, max_features=1000,  use_d2net_detection=False, num_upsampling=3, thresh=0.15)
+extraction_model = em.ExtractionModel(attention, max_features=None,  use_d2net_detection=False, num_upsampling=3, thresh=0.15)
 
 # Process the file
 with open(args.image_list_file, 'r') as f:
@@ -128,9 +128,12 @@ for line in tqdm(lines, total=len(lines)):
         print("SHAPE2", input_image[np.newaxis, :, :, :].astype(np.float32).shape)
         im = torch.tensor(input_image[np.newaxis, :, :, :].astype(np.float32))
 
-        keypoints, scores, descriptors, _ = extraction_model(im)
+        #keypoints, scores, descriptors, _ = extraction_model(im)
+        keypoints, descriptors, scores, _ = extraction_model(im)
 
     print("KP", keypoints.shape)
+    print("DESC",descriptors.shape)
+    print("SCOR", scores.shape)
 
     # Input image coordinates
     keypoints[:, 0] *= fact_i
