@@ -41,17 +41,14 @@ class FeatureEncoder32Up(LightningModule):
             'early': nn.Sequential(
                 nn.Conv2d(
                     in_channels=self.input_channels['early'], out_channels=self.encoded_channels, kernel_size=(1, 1)),
-                nn.ReLU(True),
             ),
             'middle': nn.Sequential(
                 nn.Conv2d(
                     in_channels=self.input_channels['middle'], out_channels=self.encoded_channels, kernel_size=(1, 1)),
-                nn.ReLU(True),
             ),
             'deep': nn.Sequential(
                 nn.Conv2d(
                     in_channels=self.input_channels['deep'], out_channels=self.encoded_channels, kernel_size=(1, 1)),
-                nn.ReLU(True),
             ),
         }
 
@@ -174,17 +171,14 @@ class FeatureEncoder64Up(LightningModule):
             'early': nn.Sequential(
                 nn.Conv2d(
                     in_channels=self.input_channels['early'], out_channels=self.encoded_channels, kernel_size=(1, 1)),
-                nn.ReLU(True),
             ),
             'middle': nn.Sequential(
                 nn.Conv2d(
                     in_channels=self.input_channels['middle'], out_channels=self.encoded_channels, kernel_size=(1, 1)),
-                nn.ReLU(True),
             ),
             'deep': nn.Sequential(
                 nn.Conv2d(
                     in_channels=self.input_channels['deep'], out_channels=self.encoded_channels, kernel_size=(1, 1)),
-                nn.ReLU(True),
             ),
         }
 
@@ -227,37 +221,47 @@ class FeatureEncoder64Up(LightningModule):
         return y
 
     def training_step(self, batch, batch_idx):
-        x = self.get_resnet_layers(batch["image1"])
+        x1 = self.get_resnet_layers(batch["image1"])
+        x2 = self.get_resnet_layers(batch["image2"])
 
-        z = {}
-        x_hat = {}
+        z1 = {}
+        x_hat1 = {}
+        z2 = {}
+        x_hat2 = {}
         for s in self.stages:
-            z[s] = self.encoder[s](x[s])
-            x_hat[s] = self.decoder[s](z[s])
+            z1[s] = self.encoder[s](x1[s])
+            x_hat1[s] = self.decoder[s](z1[s])
+            z2[s] = self.encoder[s](x2[s])
+            x_hat2[s] = self.decoder[s](z2[s])
 
-        loss = sum((F.mse_loss(x[s], x_hat[s]) for s in self.stages))
+        loss = sum((F.mse_loss(x1[s], x_hat1[s]) + F.mse_loss(x2[s], x_hat2[s])) for s in self.stages)
 
         self.log('train_loss', loss)
 
         return loss
 
     def validation_step(self, batch, batch_idx):
-        x = self.get_resnet_layers(batch["image1"])
+        x1 = self.get_resnet_layers(batch["image1"])
+        x2 = self.get_resnet_layers(batch["image2"])
 
-        z = {}
-        x_hat = {}
+        z1 = {}
+        x_hat1 = {}
+        z2 = {}
+        x_hat2 = {}
         for s in self.stages:
-            z[s] = self.encoder[s](x[s])
-            x_hat[s] = self.decoder[s](z[s])
+            z1[s] = self.encoder[s](x1[s])
+            x_hat1[s] = self.decoder[s](z1[s])
+            z2[s] = self.encoder[s](x2[s])
+            x_hat2[s] = self.decoder[s](z2[s])
 
-        loss = sum((F.mse_loss(x[s], x_hat[s]) for s in self.stages))
+        loss = sum((F.mse_loss(x1[s], x_hat1[s]) + F.mse_loss(x2[s], x_hat2[s])) for s in self.stages)
 
         self.log('validation_loss', loss)
 
         return loss
 
     def configure_optimizers(self):
-        optimizer = torch.optim.Adam(self.parameters(), lr=2.0*1e-4)
+        optimizer = torch.optim.Adam(self.parameters(), lr=1.0*1e-3)
         return optimizer
 
     @torch.no_grad()

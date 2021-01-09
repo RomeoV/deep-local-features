@@ -88,6 +88,7 @@ class AttentionLayer2(LightningModule):
 
         self.conv1 = nn.Conv2d(in_channels=self.feature_encoder.encoded_channels, \
                     out_channels=512, kernel_size=(1,1)) #bx2xWxH
+        self.bn = nn.BatchNorm2d(512)
         self.activation = nn.ReLU(True)
         self.conv2 = nn.Conv2d(in_channels=512, \
                     out_channels=1, kernel_size=(1,1)) #bx2xWxH
@@ -103,9 +104,10 @@ class AttentionLayer2(LightningModule):
     
     def forward(self, x):
         x = self.conv1(x)
+        x = self.bn(x)
         x=self.activation(x)
         x = self.conv2(x)
-        x =  self.agg(x) #bx1xWxH
+        x =  self.softmax(x) #bx1xWxH //Should be in [0,1]
         return x
     
     def training_step(self, batch, batch_idx):

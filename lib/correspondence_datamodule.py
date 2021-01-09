@@ -87,7 +87,7 @@ class CorrespondenceDataModule(pytorch_lightning.LightningDataModule):
         self.dataset_train = MegaDepthDataset(train=True, scene_list_path=f"{base_path}/train_scenes.txt", scene_info_path=f"{base_path}/scene_info", base_path=base_path)
         self.dataset_train.build_dataset()
 
-        self.dataset_test = MegaDepthDataset(train=False, scene_list_path=f"{base_path}/train_scenes.txt", scene_info_path=f"{base_path}/scene_info", base_path=base_path)
+        self.dataset_test = MegaDepthDataset(train=False, scene_list_path=f"{base_path}/valid_scenes.txt", scene_info_path=f"{base_path}/scene_info", base_path=base_path)
         self.dataset_test.build_dataset()
 
     def setup(self, stage):

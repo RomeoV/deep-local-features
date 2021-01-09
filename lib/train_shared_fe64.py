@@ -1,4 +1,4 @@
-
+import torch
 from torch import nn
 from pytorch_lightning.core.lightning import LightningModule
 import torchvision.models
@@ -11,8 +11,7 @@ from lib.tf_weight_loader import load_weights
 from lib.tf_weight_loader import mapping as default_mapping
 from pytorch_lightning.loggers import TensorBoardLogger
 from lib.loss import *
-
-class FeatureEncoder64Re(LightningModule):
+class CorrespondenceEncoder(LightningModule):
     def __init__(self, load_tf_weights=True):
         super().__init__()
 
@@ -42,17 +41,14 @@ class FeatureEncoder64Re(LightningModule):
             'early': nn.Sequential(
                 nn.Conv2d(
                     in_channels=self.input_channels['early'], out_channels=self.encoded_channels, kernel_size=(1, 1)),
-                nn.ReLU(True),
             ),
             'middle': nn.Sequential(
                 nn.Conv2d(
                     in_channels=self.input_channels['middle'], out_channels=self.encoded_channels, kernel_size=(1, 1)),
-                nn.ReLU(True),
             ),
             'deep': nn.Sequential(
                 nn.Conv2d(
                     in_channels=self.input_channels['deep'], out_channels=self.encoded_channels, kernel_size=(1, 1)),
-                nn.ReLU(True),
             ),
         }
 
@@ -84,6 +80,11 @@ class FeatureEncoder64Re(LightningModule):
         self.d2 = self.decoder['middle']
         self.d3 = self.decoder['deep']
 
+
+        self.correspondence_loss = CorrespondenceLoss()
+
+        self.cfactor = 1.0
+
     def forward(self, x):
         x = self.get_resnet_layers(x)
 
@@ -96,14 +97,19 @@ class FeatureEncoder64Re(LightningModule):
 
     def training_step(self, batch, batch_idx):
         x1 = self.get_resnet_layers(batch["image1"])
+        x2 = self.get_resnet_layers(batch["image2"])
 
         z1 = {}
         x_hat1 = {}
+        z2 = {}
+        x_hat2 = {}
         for s in self.stages:
             z1[s] = self.encoder[s](x1[s])
             x_hat1[s] = self.decoder[s](z1[s])
+            z2[s] = self.encoder[s](x2[s])
+            x_hat2[s] = self.decoder[s](z2[s])
 
-        loss = sum((F.mse_loss(x1[s], x_hat1[s])) for s in self.stages)
+        loss = sum((F.mse_loss(x1[s], x_hat1[s]) + F.mse_loss(x2[s], x_hat2[s]) + self.cfactor * self.correspondence_loss(z1[s],z2[s], batch)) for s in self.stages)
 
         self.log('train_loss', loss)
 
@@ -111,21 +117,26 @@ class FeatureEncoder64Re(LightningModule):
 
     def validation_step(self, batch, batch_idx):
         x1 = self.get_resnet_layers(batch["image1"])
+        x2 = self.get_resnet_layers(batch["image2"])
 
         z1 = {}
         x_hat1 = {}
+        z2 = {}
+        x_hat2 = {}
         for s in self.stages:
             z1[s] = self.encoder[s](x1[s])
             x_hat1[s] = self.decoder[s](z1[s])
+            z2[s] = self.encoder[s](x2[s])
+            x_hat2[s] = self.decoder[s](z2[s])
 
-        loss = sum((F.mse_loss(x1[s], x_hat1[s])) for s in self.stages)
+        loss = sum((F.mse_loss(x1[s], x_hat1[s]) + F.mse_loss(x2[s], x_hat2[s]) + self.cfactor * self.correspondence_loss(z1[s],z2[s], batch)) for s in self.stages)
 
         self.log('validation_loss', loss)
 
         return loss
 
     def configure_optimizers(self):
-        optimizer = torch.optim.Adam(self.parameters(), lr=5.0*1e-4)
+        optimizer = torch.optim.Adam(self.parameters(), lr=1.0*1e-3)
         return optimizer
 
     @torch.no_grad()
@@ -145,9 +156,11 @@ class FeatureEncoder64Re(LightningModule):
                 'middle': activation_transform['middle'](activations["layer3"]),
                 'deep': activation_transform['deep'](activations["layer4"])}
 
-autoencoder = FeatureEncoder64Re()
-tb_logger = TensorBoardLogger('tb_logs', name='feature_encoder64_re_deep_l5e4')
-trainer = pytorch_lightning.Trainer(logger = tb_logger,
-    gpus=1 if torch.cuda.is_available() else None)
-dm = CorrespondenceDataModule()
-trainer.fit(autoencoder, dm)
+
+if __name__=="__main__":
+    autoencoder = CorrespondenceEncoder()
+    tb_logger = TensorBoardLogger('tb_logs', name='correspondence_encoder_lr1e3')
+    trainer = pytorch_lightning.Trainer(logger = tb_logger,
+        gpus=1 if torch.cuda.is_available() else None)
+    dm = CorrespondenceDataModule()
+    trainer.fit(autoencoder, dm)

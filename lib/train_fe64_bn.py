@@ -12,7 +12,7 @@ from lib.tf_weight_loader import mapping as default_mapping
 from pytorch_lightning.loggers import TensorBoardLogger
 from lib.loss import *
 
-class FeatureEncoder64Re(LightningModule):
+class FeatureEncoder64Bn(LightningModule):
     def __init__(self, load_tf_weights=True):
         super().__init__()
 
@@ -60,16 +60,19 @@ class FeatureEncoder64Re(LightningModule):
             'early': nn.Sequential(
                 nn.ConvTranspose2d(in_channels=self.encoded_channels,
                                    out_channels=self.input_channels['early'], kernel_size=(1, 1)),
+                nn.BatchNorm2d(self.input_channels['early']),
                 nn.ReLU(True),
             ),
             'middle': nn.Sequential(
                 nn.ConvTranspose2d(in_channels=self.encoded_channels,
                                    out_channels=self.input_channels['middle'], kernel_size=(1, 1)),
+                nn.BatchNorm2d(self.input_channels['middle']),
                 nn.ReLU(True),
             ),
             'deep': nn.Sequential(
                 nn.ConvTranspose2d(in_channels=self.encoded_channels,
                                    out_channels=self.input_channels['deep'], kernel_size=(1, 1)),
+                nn.BatchNorm2d(self.input_channels['deep']),
                 nn.ReLU(True),
             ),
         }
@@ -145,8 +148,8 @@ class FeatureEncoder64Re(LightningModule):
                 'middle': activation_transform['middle'](activations["layer3"]),
                 'deep': activation_transform['deep'](activations["layer4"])}
 
-autoencoder = FeatureEncoder64Re()
-tb_logger = TensorBoardLogger('tb_logs', name='feature_encoder64_re_deep_l5e4')
+autoencoder = FeatureEncoder64Bn()
+tb_logger = TensorBoardLogger('tb_logs', name='feature_encoder64_bn_deep_l5e4')
 trainer = pytorch_lightning.Trainer(logger = tb_logger,
     gpus=1 if torch.cuda.is_available() else None)
 dm = CorrespondenceDataModule()
