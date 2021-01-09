@@ -2,6 +2,7 @@
 *__pycache__*
 *.pyc
 .idea/
+*.pbtxt
 *.ignore*
 lsf*
 tb_logs/

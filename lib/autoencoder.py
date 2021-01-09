@@ -642,7 +642,7 @@ class FeatureEncoder1(LightningModule):
         return y
 
     def training_step(self, batch, batch_idx):
-        x = self.get_resnet_layers(batch["image1"])
+        x = self.get_resnet_layers_no_grad(batch["image1"])
 
         z = {}
         x_hat = {}
@@ -657,7 +657,7 @@ class FeatureEncoder1(LightningModule):
         return loss
 
     def validation_step(self, batch, batch_idx):
-        x = self.get_resnet_layers(batch["image1"])
+        x = self.get_resnet_layers_no_grad(batch["image1"])
 
         z = {}
         x_hat = {}
@@ -676,16 +676,27 @@ class FeatureEncoder1(LightningModule):
         return optimizer
 
     @torch.no_grad()
+    def get_resnet_layers_no_grad(self, x):
+        return self.get_resnet_layers(x)
+
     def get_resnet_layers(self, x):
         activations = self.resnet_extractor(x)
+        if len(activations['layer4_conv1'].size()) == 3:
+            deep_features = torch.unsqueeze(activations['layer4_conv1'], 0)
+            middle_features = torch.unsqueeze(activations['layer3_conv1'], 0)
+            early_features = torch.unsqueeze(activations['layer2_conv1'], 0)
+        else:
+            deep_features = activations['layer4_conv1']
+            middle_features = activations['layer3_conv1']
+            early_features = activations['layer2_conv1']
         activation_transform = {
             'early': nn.AvgPool2d(kernel_size=(2, 2), stride=(2, 2)),
             'middle': lambda x: x,
             'deep': nn.Upsample(scale_factor=2, mode="bilinear", align_corners=True),
         }
-        return {'early': activation_transform['early'](activations["layer2_conv1"]),
-                'middle': activation_transform['middle'](activations["layer3_conv1"]),
-                'deep': activation_transform['deep'](activations["layer4_conv1"])}
+        return {'early': activation_transform['early'](early_features),
+                'middle': activation_transform['middle'](middle_features),
+                'deep': activation_transform['deep'](deep_features)}
 
 
 
