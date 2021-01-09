@@ -1,7 +1,7 @@
 import torch
 from torch import nn
 from pytorch_lightning.core.lightning import LightningModule
-import torchvision.models
+from lib import torchvision_resnet
 
 from torch.nn import functional as F
 import pytorch_lightning
@@ -12,7 +12,7 @@ class FeatureEncoder(LightningModule):
     def __init__(self):
         super().__init__()
 
-        self.resnet = torchvision.models.resnet50(pretrained=True)
+        self.resnet = torchvision_resnet.resnet50(pretrained=True, strides=(1,2,2,2))
 
         self.encoded_channels = 16
 
