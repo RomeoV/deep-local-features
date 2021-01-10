@@ -146,17 +146,11 @@ for line in tqdm(lines, total=len(lines)):
     with torch.no_grad():
         #if args.multiscale:
 
-        print("SHAPE", input_image.shape)
-
-        print("SHAPE2", input_image[np.newaxis, :, :, :].astype(np.float32).shape)
         im = torch.tensor(input_image[np.newaxis, :, :, :].astype(np.float32))
 
         #keypoints, scores, descriptors, _ = extraction_model(im)
         keypoints, descriptors, scores, _ = extraction_model(im)
 
-    print("KP", keypoints.shape)
-    print("DESC",descriptors.shape)
-    print("SCOR", scores.shape)
 
     # Input image coordinates
     keypoints[:, 0] *= fact_i
