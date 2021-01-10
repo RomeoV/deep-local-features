@@ -7,3 +7,4 @@
 lsf*
 tb_logs/
 lightning_logs/
+*.ignore*
