@@ -108,6 +108,19 @@ class EncoderBase(LightningModule):
 
         return y
 
+    def training_step(self, batch, batch_idx):
+        loss = self.compute_loss(batch, batch_idx)
+        self.log('train_loss', loss)
+        return loss
+
+    def validation_step(self, batch, batch_idx):
+        loss = self.compute_loss(batch, batch_idx)
+        self.log('validation_loss', loss)
+        return loss
+
+    def compute_loss(self, batch, batch_idx):
+        raise NotImplementedError
+
     def configure_optimizers(self):
         raise NotImplementedError()
 
@@ -139,7 +152,7 @@ class FeatureEncoderUp(EncoderBase):
                 'middle': activation_transform['middle'](activations["layer3"]),
                 'deep': activation_transform['deep'](activations["layer4"])}
 
-    def training_step(self, batch, batch_idx):
+    def compute_loss(self, batch, batch_idx):
         x1 = self.get_resnet_layers(batch["image1"])
         x2 = self.get_resnet_layers(batch["image2"])
 
@@ -155,29 +168,6 @@ class FeatureEncoderUp(EncoderBase):
 
         loss = sum((F.mse_loss(x1[s], x_hat1[s]) +
                     F.mse_loss(x2[s], x_hat2[s])) for s in self.stages)
-
-        self.log('train_loss', loss)
-
-        return loss
-
-    def validation_step(self, batch, batch_idx):
-        x1 = self.get_resnet_layers(batch["image1"])
-        x2 = self.get_resnet_layers(batch["image2"])
-
-        z1 = {}
-        x_hat1 = {}
-        z2 = {}
-        x_hat2 = {}
-        for s in self.stages:
-            z1[s] = self.encoder[s](x1[s])
-            x_hat1[s] = self.decoder[s](z1[s])
-            z2[s] = self.encoder[s](x2[s])
-            x_hat2[s] = self.decoder[s](z2[s])
-
-        loss = sum((F.mse_loss(x1[s], x_hat1[s]) +
-                    F.mse_loss(x2[s], x_hat2[s])) for s in self.stages)
-
-        self.log('validation_loss', loss)
 
         return loss
 
@@ -220,7 +210,7 @@ class FeatureEncoder(EncoderBase):
         return (get_basic_encoder(self.input_channels, self.encoded_channels, True),
                 get_basic_decoder(self.encoded_channels, self.input_channels, False))
 
-    def training_step(self, batch, batch_idx):
+    def compute_loss(self, batch, batch_idx):
         x = self.get_resnet_layers(batch["image1"])
 
         z = {}
@@ -230,23 +220,6 @@ class FeatureEncoder(EncoderBase):
             x_hat[s] = self.decoder[s](z[s])
 
         loss = sum((F.mse_loss(x[s], x_hat[s]) for s in self.stages))
-
-        self.log('train_loss', loss)
-
-        return loss
-
-    def validation_step(self, batch, batch_idx):
-        x = self.get_resnet_layers(batch["image1"])
-
-        z = {}
-        x_hat = {}
-        for s in self.stages:
-            z[s] = self.encoder[s](x[s])
-            x_hat[s] = self.decoder[s](z[s])
-
-        loss = sum((F.mse_loss(x[s], x_hat[s]) for s in self.stages))
-
-        self.log('validation_loss', loss)
 
         return loss
 
@@ -280,7 +253,7 @@ class FeatureEncoder3(EncoderBase):
         return (get_basic_encoder(self.input_channels, self.encoded_channels, True),
                 get_basic_decoder(self.encoded_channels, self.input_channels, False))
 
-    def training_step(self, batch, batch_idx):
+    def compute_loss(self, batch, batch_idx):
         x = self.get_resnet_layers(batch["image1"])
 
         z = {}
@@ -289,26 +262,7 @@ class FeatureEncoder3(EncoderBase):
             z[s] = self.encoder[s](x[s])
             x_hat[s] = self.decoder[s](z[s])
 
-        loss = sum((F.mse_loss(x[s], x_hat[s]) for s in self.stages))
-
-        self.log('train_loss', loss)
-
-        return loss
-
-    def validation_step(self, batch, batch_idx):
-        x = self.get_resnet_layers(batch["image1"])
-
-        z = {}
-        x_hat = {}
-        for s in self.stages:
-            z[s] = self.encoder[s](x[s])
-            x_hat[s] = self.decoder[s](z[s])
-
-        loss = sum((F.mse_loss(x[s], x_hat[s]) for s in self.stages))
-
-        self.log('validation_loss', loss)
-
-        return loss
+        return sum((F.mse_loss(x[s], x_hat[s]) for s in self.stages))
 
     def configure_optimizers(self):
         optimizer = torch.optim.Adam(self.parameters(), lr=1e-3)
@@ -339,7 +293,7 @@ class FeatureEncoder1(EncoderBase):
         return (get_basic_encoder(self.input_channels, self.encoded_channels, True),
                 get_basic_decoder(self.encoded_channels, self.input_channels, True))
 
-    def training_step(self, batch, batch_idx):
+    def compute_loss(self, batch, batch_idx):
         x = self.get_resnet_layers_no_grad(batch["image1"])
 
         z = {}
@@ -348,26 +302,7 @@ class FeatureEncoder1(EncoderBase):
             z[s] = self.encoder[s](x[s])
             x_hat[s] = self.decoder[s](z[s])
 
-        loss = sum((F.mse_loss(x[s], x_hat[s]) for s in self.stages))
-
-        self.log('train_loss', loss)
-
-        return loss
-
-    def validation_step(self, batch, batch_idx):
-        x = self.get_resnet_layers_no_grad(batch["image1"])
-
-        z = {}
-        x_hat = {}
-        for s in self.stages:
-            z[s] = self.encoder[s](x[s])
-            x_hat[s] = self.decoder[s](z[s])
-
-        loss = sum((F.mse_loss(x[s], x_hat[s]) for s in self.stages))
-
-        self.log('validation_loss', loss)
-
-        return loss
+        return sum((F.mse_loss(x[s], x_hat[s]) for s in self.stages))
 
     def configure_optimizers(self):
         optimizer = torch.optim.Adam(self.parameters(), lr=1e-3)
