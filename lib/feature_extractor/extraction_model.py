@@ -36,6 +36,9 @@ class ExtractionModel(nn.Module):
         n, _, h, w = images.size()
 
         dense_features = self.extraction(images)
+
+        del images
+
         early = dense_features['early']
         middle = dense_features['middle']
         deep = dense_features['deep']
@@ -69,6 +72,8 @@ class ExtractionModel(nn.Module):
             1, fmap_pos[i][0, :], fmap_pos[i][1, :], fmap_pos[i][2, :]
         ] for i in range(3)]
 
+        del displacements
+
         masks = [torch.min(
             torch.abs(displacements_i[i]) < 0.5,
             torch.abs(displacements_j[i]) < 0.5
@@ -80,6 +85,8 @@ class ExtractionModel(nn.Module):
             displacements_i[i][masks[i]],
             displacements_j[i][masks[i]]
         ], dim=0) for i in range(3)]
+
+        del masks, displacements_i, displacements_j
 
         fmap_keypoints = [fmap_pos[i][1:, :].float(
         ) + valid_displacements[i] for i in range(3)]
@@ -101,6 +108,8 @@ class ExtractionModel(nn.Module):
 
         keypoints = [utils.upscale_positions(
             k, scaling_steps=self._num_upsampling) for k in fmap_keypoints]
+
+        del fmap_keypoints
         # for i in range(3):
         #     keypoints[i][0, :] *= h / h_map * 0.25
         #     keypoints[i][1, :] *= w / w_map * 0.25
@@ -111,6 +120,8 @@ class ExtractionModel(nn.Module):
         scores = [
             score_extraction_input[i][0, fmap_pos[i][0, :], fmap_pos[i][1, :], fmap_pos[i][2, :]] for i in range(3)
         ]
+
+        del fmap_pos
 
         keypoints = [k.t() for k in keypoints]
         keypoints = torch.cat(keypoints)
