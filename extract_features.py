@@ -31,6 +31,28 @@ device = torch.device("cuda:0" if use_cuda else "cpu")
 parser = argparse.ArgumentParser(description='Feature extraction script')
 
 parser.add_argument(
+    '--encoder_model', type=str, default='FeatureEncoder64Up',
+    help='encoder model name'
+)
+parser.add_argument(
+    '--attention_model', type=str, default='MultiAttentionLayer',
+    help='attention model name'
+)
+parser.add_argument(
+    '--encoder_ckpt', type=str, default='/home/witi/Downloads/encoder_epoch=14-step=2174.ckpt',
+    help='path to encoder checkpoint'
+)
+parser.add_argument(
+    '--attention_ckpt', type=str, default='/home/witi/Downloads/attention_epoch=4-step=582.ckpt',
+    help='path to attention checkpoint'
+)
+parser.add_argument(
+    '--output_extension', type=str, default='.our-model',
+    help='extension for the output. Same name must be added to hpatches_sequences/HPatches-Sequences-Matching-Benchmark.ipynb'
+)
+
+
+parser.add_argument(
     '--image_list_file', type=str, default='hpatches_sequences/image_list_hpatches_sequences.txt',
     help='path to a file containing a list of images to process'
 )
@@ -53,10 +75,7 @@ parser.add_argument(
     help='maximum sum of image sizes at network input'
 )
 
-parser.add_argument(
-    '--output_extension', type=str, default='.our-model',
-    help='extension for the output'
-)
+
 parser.add_argument(
     '--output_type', type=str, default='npz',
     help='output file type (npz or mat)'
@@ -84,10 +103,14 @@ print(args)
 #     use_relu=args.use_relu,
 #     use_cuda=use_cuda
 # )
-encoder = autoencoder.FeatureEncoder1.load_from_checkpoint('/home/witi/Downloads/autoenc.ckpt', load_tf_weights=False).eval()
-attention = attention_model.MultiAttentionLayer.load_from_checkpoint('/home/witi/Downloads/attention.ckpt', feature_encoder=encoder).eval()
 
-extraction_model = em.ExtractionModel(attention, max_features=None,  use_d2net_detection=False, num_upsampling=3, thresh=0.15)
+exec('encoder = autoencoder.' + args.encoder_model + '.load_from_checkpoint(\"' + args.encoder_ckpt + '\", load_tf_weights=False).eval()')
+#encoder = autoencoder.FeatureEncoder1.load_from_checkpoint(args.encoder_ckpt, load_tf_weights=False).eval()
+
+exec('attention = attention_model.' + args.attention_model + '.load_from_checkpoint(\"' + args.attention_ckpt + '\", feature_encoder=encoder).eval()')
+#attention = attention_model.MultiAttentionLayer.load_from_checkpoint(args.attention_ckpt, feature_encoder=encoder).eval()
+
+extraction_model = em.ExtractionModel(attention, max_features=None,  use_d2net_detection=False, num_upsampling=3, thresh=0.2)
 
 # Process the file
 with open(args.image_list_file, 'r') as f:
@@ -123,17 +146,11 @@ for line in tqdm(lines, total=len(lines)):
     with torch.no_grad():
         #if args.multiscale:
 
-        print("SHAPE", input_image.shape)
-
-        print("SHAPE2", input_image[np.newaxis, :, :, :].astype(np.float32).shape)
         im = torch.tensor(input_image[np.newaxis, :, :, :].astype(np.float32))
 
         #keypoints, scores, descriptors, _ = extraction_model(im)
         keypoints, descriptors, scores, _ = extraction_model(im)
 
-    print("KP", keypoints.shape)
-    print("DESC",descriptors.shape)
-    print("SCOR", scores.shape)
 
     # Input image coordinates
     keypoints[:, 0] *= fact_i
