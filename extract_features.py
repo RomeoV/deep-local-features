@@ -53,7 +53,9 @@ parser.add_argument(
     '--output_extension', type=str, default='.our-model',
     help='extension for the output. Same name must be added to hpatches_sequences/HPatches-Sequences-Matching-Benchmark.ipynb'
 )
-
+parser.add_argument(
+    '--d2net_localization', action='store_true', default=False, help='Help whether or not to extract feature as in the D2Net paper'
+)
 parser.add_argument(
     '--nogpu', action='store_true', default=False, help="Whether or not to use gpu"
 )
@@ -124,7 +126,7 @@ attention = AttentionModule.load_from_checkpoint(
 extraction_model = em.ExtractionModel(
     attention,
     max_features=None,
-    use_d2net_detection=False,
+    use_d2net_detection=args.d2net_localization,
     num_upsampling=num_upsampling_extraction,
     thresh=args.thresh,
     use_nms=not args.nouse_nms)
@@ -185,7 +187,10 @@ for line in tqdm(lines, total=len(lines)):
     keypoints[:, 1] *= fact_j
     # i, j -> u, v
     # TODO Find out what the following line is for
-    #keypoints = keypoints[:, [1, 0, 2]]
+    keypoints = torch.cat([
+        keypoints,
+        torch.ones([keypoints.size(0), 1]),  # * 1 / scale,
+    ], dim=1)
 
     if args.output_type == 'npz':
         with open(path + args.output_extension, 'wb') as output_file:
