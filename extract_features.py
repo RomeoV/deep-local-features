@@ -22,6 +22,7 @@ from lib.feature_extractor import extraction_model as em
 from lib import autoencoder, attention_model
 from lib import load_checkpoint
 from pqdm.threads import pqdm
+import os
 #from externals.d2net.lib import localization, utils
 
 
@@ -51,6 +52,10 @@ parser.add_argument(
 parser.add_argument(
     '--output_extension', type=str, default='.our-model',
     help='extension for the output. Same name must be added to hpatches_sequences/HPatches-Sequences-Matching-Benchmark.ipynb'
+)
+
+parser.add_argument(
+    '--nogpu', action='store_true', default=False, help="Whether or not to use gpu"
 )
 parser.add_argument('--thresh', type=float, default=0.2,
                     help="Threshold for detection")
@@ -124,12 +129,21 @@ extraction_model = em.ExtractionModel(
     thresh=args.thresh,
     use_nms=not args.nouse_nms)
 
+if not args.nogpu:
+    extraction_model = extraction_model.cuda()
+
 # Process the file
 with open(args.image_list_file, 'r') as f:
     lines = f.readlines()
 
+for l in lines:
+    l = os.path.join(os.path.dirname(os.path.realpath(__file__)), l.strip())
+    if not os.path.isfile(l.strip()):
+        print(f"Failed to find {l.strip()}")
+        raise Exception("File not found")
 
-def process_line(line):
+
+for line in tqdm(lines, total=len(lines)):
     path = line.strip()
 
     image = imageio.imread(path)
@@ -158,7 +172,10 @@ def process_line(line):
         preprocessing=args.preprocessing
     )
     with torch.no_grad():
-        im = torch.tensor(input_image[np.newaxis, :, :, :].astype(np.float32))
+        im = torch.tensor(
+            input_image[np.newaxis, :, :, :].astype(np.float32))
+        if not args.nogpu:
+            im = im.cuda()
 
         #keypoints, scores, descriptors, _ = extraction_model(im)
         keypoints, descriptors, scores, _ = extraction_model(im)
@@ -192,4 +209,4 @@ def process_line(line):
         raise ValueError('Unknown output type.')
 
 
-pqdm(lines, process_line, n_jobs=4)
+#pqdm(lines, process_line, n_jobs=4)

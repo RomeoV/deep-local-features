@@ -54,7 +54,8 @@ class ExtractionModel(nn.Module):
             displacements_input = detections
             if self._use_nms:
                 detections = [self.nms(d) for d in detections]
-        dense_features = [early, middle, deep]
+        dense_features = [early.cpu(), middle.cpu(), deep.cpu()]
+        detections = [d.cpu() for d in detections]
 
         fmap_pos = [torch.nonzero(d[0].cpu()).t() for d in detections]
 

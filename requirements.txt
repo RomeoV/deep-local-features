@@ -1,5 +1,6 @@
 python = 3.7
 pqdm
+ipywidgets
 pytorch::pytorch
 pytorch::torchvision
 conda-forge::pytorch-lightning
