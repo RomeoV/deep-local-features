@@ -11,6 +11,7 @@ from lib.repeatability_loss import RepeatabilityLoss
 from lib.autoencoder import *
 from lib.train_shared_fe64 import *
 REP_LOSS = False
+REL_LOSS = True
 
 class AttentionLayer(LightningModule):
     def __init__(self, feature_encoder):
@@ -242,7 +243,9 @@ class MultiAttentionLayer2(LightningModule):
     def __init__(self, feature_encoder):
         super().__init__()
         self.feature_encoder = feature_encoder
-        if (REP_LOSS):
+        if (REL_LOSS):
+            self.loss = None#TODO INSERT HERE
+        elif (REP_LOSS):
             self.loss = RepeatabilityLoss()
         else:
             self.loss = DistinctivenessLoss()
@@ -338,11 +341,8 @@ class MultiAttentionLayer2(LightningModule):
 
 if __name__ == "__main__":
     autoencoder = CorrespondenceEncoder.load_from_checkpoint("tb_logs/correspondence_encoder_lr1e3/version_0/checkpoints/epoch=7-step=1159_interm.ckpt").requires_grad_(False)
-    attentions = AttentionLayer2(autoencoder)
-    if REP_LOSS:
-        tb_logger = TensorBoardLogger('tb_logs', name='attention_model_repeatability_loss')
-    else:
-        tb_logger = TensorBoardLogger('tb_logs', name='cfe_attention_model_delf_normsum_distinctiveness+_loss')
+    attentions = MultiAttentionLayer2(autoencoder)
+    tb_logger = TensorBoardLogger('tb_logs', name='attention_reliability_loss_multiatt2_corenc_cfe64-lr1e3')
     trainer = pytorch_lightning.Trainer(logger=tb_logger, gpus=1 if torch.cuda.is_available() else None)
     dm = CorrespondenceDataModule()
     trainer.fit(attentions, dm)
