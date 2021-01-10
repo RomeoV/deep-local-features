@@ -21,6 +21,7 @@ from externals.d2net.lib.utils import preprocess_image
 from lib.feature_extractor import extraction_model as em
 from lib import autoencoder, attention_model
 from lib import load_checkpoint
+from pqdm.threads import pqdm
 #from externals.d2net.lib import localization, utils
 
 
@@ -126,7 +127,9 @@ extraction_model = em.ExtractionModel(
 # Process the file
 with open(args.image_list_file, 'r') as f:
     lines = f.readlines()
-for line in tqdm(lines, total=len(lines)):
+
+
+def process_line(line):
     path = line.strip()
 
     image = imageio.imread(path)
@@ -187,3 +190,6 @@ for line in tqdm(lines, total=len(lines)):
             )
     else:
         raise ValueError('Unknown output type.')
+
+
+pqdm(lines, process_line, n_jobs=4)
