@@ -1,7 +1,7 @@
 import torch
 from torch import nn
 from pytorch_lightning.core.lightning import LightningModule
-import torchvision.models
+from lib import torchvision_resnet
 
 from torch.nn import functional as F
 import pytorch_lightning
@@ -561,7 +561,7 @@ class FeatureEncoder3(LightningModule):
 class FeatureEncoder1(LightningModule):
     def __init__(self, load_tf_weights=True):
         super().__init__()
-
+        
         self.resnet = torchvision.models.resnet50(
             pretrained=True).eval().requires_grad_(False)
 
