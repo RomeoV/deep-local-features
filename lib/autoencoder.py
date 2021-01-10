@@ -11,11 +11,12 @@ from lib.tf_weight_loader import load_weights
 from lib.tf_weight_loader import mapping as default_mapping
 from pytorch_lightning.loggers import TensorBoardLogger
 
+
 class FeatureEncoder32Up(LightningModule):
     def __init__(self, load_tf_weights=True):
         super().__init__()
 
-        self.resnet = torchvision.models.resnet50(
+        self.resnet = torchvision_resnet.resnet50(
             pretrained=True).eval().requires_grad_(False)
 
         if load_tf_weights:
@@ -33,7 +34,8 @@ class FeatureEncoder32Up(LightningModule):
             'deep': 2048,
         }
 
-        self.resnet_extractor = ResnetActivationExtractor(self.resnet, conv_layer=None)
+        self.resnet_extractor = ResnetActivationExtractor(
+            self.resnet, conv_layer=None)
         self.resnet_correspondence_extractor = ResnetCorrespondenceExtractor(
             self.resnet_extractor)
 
@@ -69,12 +71,11 @@ class FeatureEncoder32Up(LightningModule):
                 nn.ReLU(True),
             ),
         }
-        
+
         # we need this such that the encoders get tranfered to gpu automatically
         self.e1 = self.encoder['early']
         self.e2 = self.encoder['middle']
         self.e3 = self.encoder['deep']
-
 
         self.d1 = self.decoder['early']
         self.d2 = self.decoder['middle']
@@ -133,7 +134,7 @@ class FeatureEncoder32Up(LightningModule):
         #     'deep': nn.Upsample(scale_factor=2, mode="bilinear", align_corners=True),
         # }
         activation_transform = {
-            'early' : lambda x: x,
+            'early': lambda x: x,
             'middle': nn.Upsample(scale_factor=2, mode="bilinear", align_corners=True),
             'deep': nn.Upsample(scale_factor=4, mode="bilinear", align_corners=True),
         }
@@ -141,11 +142,12 @@ class FeatureEncoder32Up(LightningModule):
                 'middle': activation_transform['middle'](activations["layer3"]),
                 'deep': activation_transform['deep'](activations["layer4"])}
 
+
 class FeatureEncoder64Up(LightningModule):
     def __init__(self, load_tf_weights=True):
         super().__init__()
 
-        self.resnet = torchvision.models.resnet50(
+        self.resnet = torchvision_resnet.resnet50(
             pretrained=True).eval().requires_grad_(False)
 
         if load_tf_weights:
@@ -163,7 +165,8 @@ class FeatureEncoder64Up(LightningModule):
             'deep': 2048,
         }
 
-        self.resnet_extractor = ResnetActivationExtractor(self.resnet, conv_layer=None)
+        self.resnet_extractor = ResnetActivationExtractor(
+            self.resnet, conv_layer=None)
         self.resnet_correspondence_extractor = ResnetCorrespondenceExtractor(
             self.resnet_extractor)
 
@@ -199,12 +202,11 @@ class FeatureEncoder64Up(LightningModule):
                 nn.ReLU(True),
             ),
         }
-        
+
         # we need this such that the encoders get tranfered to gpu automatically
         self.e1 = self.encoder['early']
         self.e2 = self.encoder['middle']
         self.e3 = self.encoder['deep']
-
 
         self.d1 = self.decoder['early']
         self.d2 = self.decoder['middle']
@@ -234,7 +236,8 @@ class FeatureEncoder64Up(LightningModule):
             z2[s] = self.encoder[s](x2[s])
             x_hat2[s] = self.decoder[s](z2[s])
 
-        loss = sum((F.mse_loss(x1[s], x_hat1[s]) + F.mse_loss(x2[s], x_hat2[s])) for s in self.stages)
+        loss = sum((F.mse_loss(x1[s], x_hat1[s]) +
+                    F.mse_loss(x2[s], x_hat2[s])) for s in self.stages)
 
         self.log('train_loss', loss)
 
@@ -254,7 +257,8 @@ class FeatureEncoder64Up(LightningModule):
             z2[s] = self.encoder[s](x2[s])
             x_hat2[s] = self.decoder[s](z2[s])
 
-        loss = sum((F.mse_loss(x1[s], x_hat1[s]) + F.mse_loss(x2[s], x_hat2[s])) for s in self.stages)
+        loss = sum((F.mse_loss(x1[s], x_hat1[s]) +
+                    F.mse_loss(x2[s], x_hat2[s])) for s in self.stages)
 
         self.log('validation_loss', loss)
 
@@ -273,7 +277,7 @@ class FeatureEncoder64Up(LightningModule):
         #     'deep': nn.Upsample(scale_factor=2, mode="bilinear", align_corners=True),
         # }
         activation_transform = {
-            'early' : lambda x: x,
+            'early': lambda x: x,
             'middle': nn.Upsample(scale_factor=2, mode="bilinear", align_corners=True),
             'deep': nn.Upsample(scale_factor=4, mode="bilinear", align_corners=True),
         }
@@ -281,11 +285,12 @@ class FeatureEncoder64Up(LightningModule):
                 'middle': activation_transform['middle'](activations["layer3"]),
                 'deep': activation_transform['deep'](activations["layer4"])}
 
+
 class FeatureEncoder(LightningModule):
     def __init__(self, load_tf_weights=True):
         super().__init__()
 
-        self.resnet = torchvision.models.resnet50(
+        self.resnet = torchvision_resnet.resnet50(
             pretrained=True).eval().requires_grad_(False)
 
         if load_tf_weights:
@@ -345,13 +350,13 @@ class FeatureEncoder(LightningModule):
 
         self.upsampler = nn.Sequential(
             nn.ConvTranspose2d(in_channels=self.input_channels['deep'],
-                                out_channels=self.input_channels['deep'], kernel_size=(1, 1), stride=2),
+                               out_channels=self.input_channels['deep'], kernel_size=(1, 1), stride=2),
             nn.ReLU(True)
         )
 
         self.downsampler = nn.Sequential(
             nn.Conv2d(in_channels=self.input_channels['early'],
-                                out_channels=self.input_channels['early'], kernel_size=(1, 1), stride=2),
+                      out_channels=self.input_channels['early'], kernel_size=(1, 1), stride=2),
             nn.ReLU(True)
         )
 
@@ -359,7 +364,6 @@ class FeatureEncoder(LightningModule):
         self.e1 = self.encoder['early']
         self.e2 = self.encoder['middle']
         self.e3 = self.encoder['deep']
-
 
         self.d1 = self.decoder['early']
         self.d2 = self.decoder['middle']
@@ -427,13 +431,11 @@ class FeatureEncoder(LightningModule):
                 'deep': activation_transform['deep'](activations["layer4_conv3"])}
 
 
-
-
 class FeatureEncoder3(LightningModule):
     def __init__(self, load_tf_weights=True):
         super().__init__()
 
-        self.resnet = torchvision.models.resnet50(
+        self.resnet = torchvision_resnet.resnet50(
             pretrained=True).eval().requires_grad_(False)
 
         if load_tf_weights:
@@ -450,7 +452,6 @@ class FeatureEncoder3(LightningModule):
             'middle': 1024,
             'deep': 2048,
         }
-        
 
         self.resnet_extractor = ResnetActivationExtractor(self.resnet)
         self.resnet_correspondence_extractor = ResnetCorrespondenceExtractor(
@@ -496,7 +497,6 @@ class FeatureEncoder3(LightningModule):
         self.e1 = self.encoder['early']
         self.e2 = self.encoder['middle']
         self.e3 = self.encoder['deep']
-
 
         self.d1 = self.decoder['early']
         self.d2 = self.decoder['middle']
@@ -558,17 +558,18 @@ class FeatureEncoder3(LightningModule):
                 'middle': activation_transform['middle'](activations["layer3_conv3"]),
                 'deep': activation_transform['deep'](activations["layer4_conv3"])}
 
+
 class FeatureEncoder1(LightningModule):
     def __init__(self, load_tf_weights=True):
         super().__init__()
-        
-        self.resnet = torchvision.models.resnet50(
+
+        self.resnet = torchvision_resnet.resnet50(
             pretrained=True).eval().requires_grad_(False)
 
         if load_tf_weights:
             mapping = default_mapping.get_default_mapping()
             weight_loader = load_weights.WeightLoader(mapping=mapping)
-            self.resnet = weight_loader.set_torch_model(self.resnet,1)
+            self.resnet = weight_loader.set_torch_model(self.resnet, 1)
 
         self.encoded_channels = 16
 
@@ -579,9 +580,8 @@ class FeatureEncoder1(LightningModule):
             'middle': 256,
             'deep': 512,
         }
-        
 
-        self.resnet_extractor = ResnetActivationExtractor(self.resnet,1)
+        self.resnet_extractor = ResnetActivationExtractor(self.resnet, 1)
         self.resnet_correspondence_extractor = ResnetCorrespondenceExtractor(
             self.resnet_extractor)
 
@@ -625,7 +625,6 @@ class FeatureEncoder1(LightningModule):
         self.e1 = self.encoder['early']
         self.e2 = self.encoder['middle']
         self.e3 = self.encoder['deep']
-
 
         self.d1 = self.decoder['early']
         self.d2 = self.decoder['middle']
@@ -699,11 +698,11 @@ class FeatureEncoder1(LightningModule):
                 'deep': activation_transform['deep'](deep_features)}
 
 
-
 if __name__ == "__main__":
     autoencoder = FeatureEncoder32Up()
-    tb_logger = TensorBoardLogger('tb_logs', name='feature_encoder32_up_deep_lr2e4')
-    trainer = pytorch_lightning.Trainer(logger = tb_logger,
-        gpus=1 if torch.cuda.is_available() else None)
+    tb_logger = TensorBoardLogger(
+        'tb_logs', name='feature_encoder32_up_deep_lr2e4')
+    trainer = pytorch_lightning.Trainer(logger=tb_logger,
+                                        gpus=1 if torch.cuda.is_available() else None)
     dm = CorrespondenceDataModule()
     trainer.fit(autoencoder, dm)
