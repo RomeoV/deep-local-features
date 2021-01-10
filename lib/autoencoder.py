@@ -11,6 +11,12 @@ from lib.tf_weight_loader import load_weights
 from lib.tf_weight_loader import mapping as default_mapping
 from pytorch_lightning.loggers import TensorBoardLogger
 
+IDENTITY_TRANSFORM = {
+    'early': lambda x: x,
+    'middle': lambda x: x,
+    'deep': lambda x: x
+}
+
 
 def get_basic_encoder(input_channels, encoded_channels, use_relu):
     early_layers = [
@@ -65,10 +71,12 @@ def get_basic_decoder(input_channels, encoded_channels, use_relu):
 
 
 class EncoderBase(LightningModule):
-    def __init__(self, encoded_channels, input_channels, load_tf_weights=True, **resnet_args):
+    def __init__(self, encoded_channels, input_channels, no_upsampling=False, load_tf_weights=True, **resnet_args):
         super().__init__()
         self.resnet = torchvision_resnet.resnet50(
             pretrained=True, **resnet_args).eval().requires_grad_(False)
+
+        self.no_upsampling = no_upsampling
 
         if load_tf_weights:
             mapping = default_mapping.get_default_mapping()
@@ -129,12 +137,12 @@ class EncoderBase(LightningModule):
 
 
 class FeatureEncoderUp(EncoderBase):
-    def __init__(self, encoded_channels=64, load_tf_weights=True, **resnet_args):
+    def __init__(self, encoded_channels=64, load_tf_weights=True, no_upsampling=False, **resnet_args):
         super().__init__(encoded_channels, {
             'early': 512,
             'middle': 1024,
             'deep': 2048,
-        }, load_tf_weights=load_tf_weights, **resnet_args)
+        }, no_upsampling=no_upsampling, load_tf_weights=load_tf_weights, **resnet_args)
 
     def get_encoder_decoder(self):
         return (get_basic_encoder(self.input_channels, self.encoded_channels, use_relu=False),
@@ -143,11 +151,14 @@ class FeatureEncoderUp(EncoderBase):
     @torch.no_grad()
     def get_resnet_layers(self, x):
         activations = self.resnet_extractor(x)
-        activation_transform = {
-            'early': lambda x: x,
-            'middle': nn.Upsample(scale_factor=2, mode="bilinear", align_corners=True),
-            'deep': nn.Upsample(scale_factor=4, mode="bilinear", align_corners=True),
-        }
+        if self.no_upsampling:
+            activation_transform = IDENTITY_TRANSFORM
+        else:
+            activation_transform = {
+                'early': lambda x: x,
+                'middle': nn.Upsample(scale_factor=2, mode="bilinear", align_corners=True),
+                'deep': nn.Upsample(scale_factor=4, mode="bilinear", align_corners=True),
+            }
         return {'early': activation_transform['early'](activations["layer2"]),
                 'middle': activation_transform['middle'](activations["layer3"]),
                 'deep': activation_transform['deep'](activations["layer4"])}
@@ -231,11 +242,14 @@ class FeatureEncoder(EncoderBase):
     def get_resnet_layers(self, x):
         activations = self.resnet_extractor(x)
 
-        activation_transform = {
-            'early': self.downsampler,
-            'middle': lambda x: x,
-            'deep': self.upsampler,
-        }
+        if self.no_upsampling:
+            activation_transform = IDENTITY_TRANSFORM
+        else:
+            activation_transform = {
+                'early': self.downsampler,
+                'middle': lambda x: x,
+                'deep': self.upsampler,
+            }
         return {'early': activation_transform['early'](activations["layer2_conv3"]),
                 'middle': activation_transform['middle'](activations["layer3_conv3"]),
                 'deep': activation_transform['deep'](activations["layer4_conv3"])}
@@ -322,11 +336,14 @@ class FeatureEncoder1(EncoderBase):
             deep_features = activations['layer4_conv1']
             middle_features = activations['layer3_conv1']
             early_features = activations['layer2_conv1']
-        activation_transform = {
-            'early': nn.AvgPool2d(kernel_size=(2, 2), stride=(2, 2)),
-            'middle': lambda x: x,
-            'deep': nn.Upsample(scale_factor=2, mode="bilinear", align_corners=True),
-        }
+        if self.no_upsampling:
+            activation_transform = IDENTITY_TRANSFORM
+        else:
+            activation_transform = {
+                'early': nn.AvgPool2d(kernel_size=(2, 2), stride=(2, 2)),
+                'middle': lambda x: x,
+                'deep': nn.Upsample(scale_factor=2, mode="bilinear", align_corners=True),
+            }
         return {'early': activation_transform['early'](early_features),
                 'middle': activation_transform['middle'](middle_features),
                 'deep': activation_transform['deep'](deep_features)}
