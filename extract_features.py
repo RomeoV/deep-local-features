@@ -1,4 +1,5 @@
 import argparse
+from threading import active_count
 
 import numpy as np
 
@@ -19,8 +20,8 @@ from externals.d2net.lib.utils import preprocess_image
 # added
 from lib.feature_extractor import extraction_model as em
 from lib import autoencoder, attention_model
+from lib import load_checkpoint
 #from externals.d2net.lib import localization, utils
-
 
 
 # CUDA
@@ -39,18 +40,25 @@ parser.add_argument(
     help='attention model name'
 )
 parser.add_argument(
-    '--encoder_ckpt', type=str, default='/home/witi/Downloads/encoder_epoch=14-step=2174.ckpt',
+    '--encoder_ckpt', type=str, default='correspondence_encoder',
     help='path to encoder checkpoint'
 )
 parser.add_argument(
-    '--attention_ckpt', type=str, default='/home/witi/Downloads/attention_epoch=4-step=582.ckpt',
+    '--attention_ckpt', type=str, default='cfe64_multi_attention',
     help='path to attention checkpoint'
 )
 parser.add_argument(
     '--output_extension', type=str, default='.our-model',
     help='extension for the output. Same name must be added to hpatches_sequences/HPatches-Sequences-Matching-Benchmark.ipynb'
 )
-
+parser.add_argument('--thresh', type=float, default=0.2,
+                    help="Threshold for detection")
+parser.add_argument('--replace_strides', action='store_true', default=False,
+                    help="Whether or not to replace strides with dilated convolution")
+parser.add_argument('--first_stride', type=int, default=1,
+                    help="Replace the first stride in the network (this is not affected by replace strides)")
+parser.add_argument('--nouse_nms', action='store_true',
+                    default=False, help="Disable NMS")
 
 parser.add_argument(
     '--image_list_file', type=str, default='hpatches_sequences/image_list_hpatches_sequences.txt',
@@ -58,7 +66,7 @@ parser.add_argument(
 )
 
 parser.add_argument(
-    '--preprocessing', type=str, default='caffe',
+    '--preprocessing', type=str, default='torch',
     help='image preprocessing (caffe or torch)'
 )
 parser.add_argument(
@@ -75,42 +83,50 @@ parser.add_argument(
     help='maximum sum of image sizes at network input'
 )
 
-
 parser.add_argument(
     '--output_type', type=str, default='npz',
     help='output file type (npz or mat)'
 )
 
-parser.add_argument(
-    '--multiscale', dest='multiscale', action='store_true',
-    help='extract multiscale features'
-)
-parser.set_defaults(multiscale=False)
-
-parser.add_argument(
-    '--no-relu', dest='use_relu', action='store_false',
-    help='remove ReLU after the dense feature extraction module'
-)
-parser.set_defaults(use_relu=True)
-
 args = parser.parse_args()
 
 print(args)
 
-# # Creating CNN model
-# model = D2Net(
-#     model_file=args.model_file,
-#     use_relu=args.use_relu,
-#     use_cuda=use_cuda
-# )
+if args.replace_strides:
+    # (True, True, True) # Default: (False, False, False)
+    replace_stride_with_dilation = (True, True, True)
+    num_upsampling_extraction = 2
+    no_upsampling = True  # Set to true when replacing strides
+else:
+    replace_stride_with_dilation = (False, False, False)
+    num_upsampling_extraction = 3
+    no_upsampling = False
 
-exec('encoder = autoencoder.' + args.encoder_model + '.load_from_checkpoint(\"' + args.encoder_ckpt + '\", load_tf_weights=False).eval()')
+if args.first_stride == 1:
+    num_upsampling_extraction -= 1
+encoder_ckpt = load_checkpoint.get_encoder_ckpt(args.encoder_ckpt)
+exec('EncoderModule = autoencoder.' + args.encoder_model)
+encoder = EncoderModule.load_from_checkpoint(encoder_ckpt,
+                                             no_upsampling=no_upsampling,
+                                             replace_stride_with_dilation=replace_stride_with_dilation,
+                                             first_stride=args.first_stride,
+                                             load_tf_weights=False).eval()
+
 #encoder = autoencoder.FeatureEncoder1.load_from_checkpoint(args.encoder_ckpt, load_tf_weights=False).eval()
 
-exec('attention = attention_model.' + args.attention_model + '.load_from_checkpoint(\"' + args.attention_ckpt + '\", feature_encoder=encoder).eval()')
-#attention = attention_model.MultiAttentionLayer.load_from_checkpoint(args.attention_ckpt, feature_encoder=encoder).eval()
+attention_ckpt = load_checkpoint.get_attention_ckpt(args.attention_ckpt)
+exec('AttentionModule = attention_model.' + args.attention_model)
+attention = AttentionModule.load_from_checkpoint(
+    attention_ckpt, feature_encoder=encoder).eval()
 
-extraction_model = em.ExtractionModel(attention, max_features=None,  use_d2net_detection=False, num_upsampling=3, thresh=0.2)
+
+extraction_model = em.ExtractionModel(
+    attention,
+    max_features=None,
+    use_d2net_detection=False,
+    num_upsampling=num_upsampling_extraction,
+    thresh=args.thresh,
+    use_nms=not args.nouse_nms)
 
 # Process the file
 with open(args.image_list_file, 'r') as f:
@@ -144,19 +160,16 @@ for line in tqdm(lines, total=len(lines)):
         preprocessing=args.preprocessing
     )
     with torch.no_grad():
-        #if args.multiscale:
-
         im = torch.tensor(input_image[np.newaxis, :, :, :].astype(np.float32))
 
         #keypoints, scores, descriptors, _ = extraction_model(im)
         keypoints, descriptors, scores, _ = extraction_model(im)
 
-
     # Input image coordinates
     keypoints[:, 0] *= fact_i
     keypoints[:, 1] *= fact_j
     # i, j -> u, v
-    #TODO Find out what the following line is for
+    # TODO Find out what the following line is for
     #keypoints = keypoints[:, [1, 0, 2]]
 
     if args.output_type == 'npz':
