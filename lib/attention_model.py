@@ -9,7 +9,7 @@ import pytorch_lightning
 from lib.loss import *
 from lib.repeatability_loss import RepeatabilityLoss
 from lib.autoencoder import *
-
+from lib.train_shared_fe64 import *
 REP_LOSS = False
 
 class AttentionLayer(LightningModule):
@@ -115,8 +115,8 @@ class AttentionLayer2(LightningModule):
         x2 = batch["image2"]
 
         with torch.no_grad():
-            x1_encoded = self.sum_layers(self.feature_encoder.forward(x1))
-            x2_encoded = self.sum_layers(self.feature_encoder.forward(x2))
+            x1_encoded = self.norm_sum_layers(self.feature_encoder.forward(x1))
+            x2_encoded = self.norm_sum_layers(self.feature_encoder.forward(x2))
 
         # x1_encoded.requires_grad = False
         # x2_encoded.requires_grad = False
@@ -133,8 +133,8 @@ class AttentionLayer2(LightningModule):
         x2 = batch["image2"]
 
         with torch.no_grad():
-            x1_encoded = self.sum_layers(self.feature_encoder.forward(x1))
-            x2_encoded = self.sum_layers(self.feature_encoder.forward(x2))
+            x1_encoded = self.norm_sum_layers(self.feature_encoder.forward(x1))
+            x2_encoded = self.norm_sum_layers(self.feature_encoder.forward(x2))
 
         # x1_encoded.requires_grad = False
         # x2_encoded.requires_grad = False
@@ -148,7 +148,7 @@ class AttentionLayer2(LightningModule):
 
 
     def configure_optimizers(self):
-        optimizer = torch.optim.Adam(self.parameters(), lr=1e-4)
+        optimizer = torch.optim.Adam(self.parameters(), lr=5.0*1e-4)
         return optimizer
 
     def concat_layers(self, x_dict):
@@ -157,6 +157,9 @@ class AttentionLayer2(LightningModule):
     def sum_layers(self, x_dict):
         return x_dict["early"] + x_dict["middle"] + x_dict["deep"] #bx48xWxH
 
+    def norm_sum_layers(self, x_dict):
+        return (F.normalize(x_dict["early"], p=2, dim=0) + F.normalize(x_dict["middle"], p=2, dim=0) + F.normalize(x_dict["deep"], p=2, dim=0)) / 3.0 #bx48xWxH
+    
 class MultiAttentionLayer(LightningModule):
     def __init__(self, feature_encoder):
         super().__init__()
@@ -234,13 +237,112 @@ class MultiAttentionLayer(LightningModule):
         optimizer = torch.optim.Adam(self.parameters(), lr=1e-4)
         return optimizer
 
+
+class MultiAttentionLayer2(LightningModule):
+    def __init__(self, feature_encoder):
+        super().__init__()
+        self.feature_encoder = feature_encoder
+        if (REP_LOSS):
+            self.loss = RepeatabilityLoss()
+        else:
+            self.loss = DistinctivenessLoss()
+
+        self.early_attentions = nn.Sequential(
+            nn.Conv2d(in_channels=self.feature_encoder.encoded_channels, \
+                    out_channels=512, kernel_size=(1,1)), #bx2xWxH
+            nn.BatchNorm2d(512),
+            nn.ReLU(True),
+            nn.Conv2d(in_channels=512, \
+                    out_channels=1, kernel_size=(1,1)), #bx2xWxH
+            nn.Softplus(beta=1, threshold=20),
+        )
+        self.middle_attentions = nn.Sequential(
+            nn.Conv2d(in_channels=self.feature_encoder.encoded_channels, \
+                    out_channels=512, kernel_size=(1,1)), #bx2xWxH
+            nn.BatchNorm2d(512),
+            nn.ReLU(True),
+            nn.Conv2d(in_channels=512, \
+                    out_channels=1, kernel_size=(1,1)), #bx2xWxH
+            nn.Softplus(beta=1, threshold=20),
+        )
+        self.deep_attentions = nn.Sequential(
+            nn.Conv2d(in_channels=self.feature_encoder.encoded_channels, \
+                    out_channels=512, kernel_size=(1,1)), #bx2xWxH
+            nn.BatchNorm2d(512),
+            nn.ReLU(True),
+            nn.Conv2d(in_channels=512, \
+                    out_channels=1, kernel_size=(1,1)), #bx2xWxH
+            nn.Softplus(beta=1, threshold=20),
+        )
+
+    def softmax(self, ux):
+        if ux.shape[1] == 1:
+            x = F.softplus(ux)
+            return x / (1 + x)  # for sure in [0,1], much less plateaus than softmax
+        elif ux.shape[1] == 2:
+            return F.softmax(ux, dim=1)[:,1:2]
+
+    def forward(self, x):
+        y = {}
+        y["early"] = self.early_attentions(x["early"])
+        y["middle"] = self.middle_attentions(x["middle"])
+        y["deep"] = self.deep_attentions(x["deep"])
+        return y
+
+    def training_step(self, batch, batch_idx):
+        x1 = batch['image1']
+        x2 = batch["image2"]
+
+        with torch.no_grad():
+            x1_encoded = self.feature_encoder.forward(x1)
+            x2_encoded = self.feature_encoder.forward(x2)
+
+        # x1_encoded.requires_grad = False
+        # x2_encoded.requires_grad = False
+        y1 = self.forward(x1_encoded)
+        y2 = self.forward(x2_encoded)
+
+        loss = torch.tensor(np.array([0], dtype=np.float32), device='cuda' if torch.cuda.is_available() else "cpu")
+
+        for layer in x1_encoded.keys():
+            loss = loss +  self.loss(x1_encoded[layer], x2_encoded[layer], y1[layer], y2[layer], batch)
+        
+        self.log('train_loss', loss)
+        return loss
+
+    def validation_step(self, batch, batch_idx):
+        x1 = batch['image1']
+        x2 = batch["image2"]
+
+        with torch.no_grad():
+            x1_encoded = self.feature_encoder.forward(x1)
+            x2_encoded = self.feature_encoder.forward(x2)
+
+        # x1_encoded.requires_grad = False
+        # x2_encoded.requires_grad = False
+        y1 = self.forward(x1_encoded)
+        y2 = self.forward(x2_encoded)
+
+        loss = torch.tensor(np.array([0], dtype=np.float32), device='cuda' if torch.cuda.is_available() else "cpu")
+
+        for layer in x1_encoded.keys():
+            loss = loss +  self.loss(x1_encoded[layer], x2_encoded[layer], y1[layer], y2[layer], batch)
+
+        self.log('validation_loss', loss)
+        return loss
+
+
+    def configure_optimizers(self):
+        optimizer = torch.optim.Adam(self.parameters(), lr=1e-4)
+        return optimizer
+
 if __name__ == "__main__":
-    autoencoder = FeatureEncoder1.load_from_checkpoint("lightning_logs/version_2/checkpoints/epoch=56-step=8264.ckpt").requires_grad_(False)
+    autoencoder = CorrespondenceEncoder.load_from_checkpoint("tb_logs/correspondence_encoder_lr1e3/version_0/checkpoints/epoch=7-step=1159_interm.ckpt").requires_grad_(False)
     attentions = AttentionLayer2(autoencoder)
     if REP_LOSS:
         tb_logger = TensorBoardLogger('tb_logs', name='attention_model_repeatability_loss')
     else:
-        tb_logger = TensorBoardLogger('tb_logs', name='fe1_attention_model_delf_sum_distinctiveness+_loss')
+        tb_logger = TensorBoardLogger('tb_logs', name='cfe_attention_model_delf_normsum_distinctiveness+_loss')
     trainer = pytorch_lightning.Trainer(logger=tb_logger, gpus=1 if torch.cuda.is_available() else None)
     dm = CorrespondenceDataModule()
     trainer.fit(attentions, dm)
