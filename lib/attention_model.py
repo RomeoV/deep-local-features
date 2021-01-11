@@ -244,7 +244,9 @@ class MultiAttentionLayer2(LightningModule):
         super().__init__()
         self.feature_encoder = feature_encoder
         if (REL_LOSS):
-            self.loss = None#TODO INSERT HERE
+            self.loss_reliability = ReliabilityLoss()
+            self.loss_distinctiveness = DistinctivenessLoss()
+            self.loss = lambda x1, x2, a1, a2, corr: 1*self.loss_reliability(x1,x2,a1,a2,corr) + 1*self.loss_distinctiveness(x1,x2,a1,a2,corr)
         elif (REP_LOSS):
             self.loss = RepeatabilityLoss()
         else:
@@ -257,7 +259,7 @@ class MultiAttentionLayer2(LightningModule):
             nn.ReLU(True),
             nn.Conv2d(in_channels=512, \
                     out_channels=1, kernel_size=(1,1)), #bx2xWxH
-            nn.Softplus(beta=1, threshold=20),
+            nn.Softplus(beta=1, threshold=20) if not REL_LOSS else nn.Softmax(),
         )
         self.middle_attentions = nn.Sequential(
             nn.Conv2d(in_channels=self.feature_encoder.encoded_channels, \
@@ -266,7 +268,7 @@ class MultiAttentionLayer2(LightningModule):
             nn.ReLU(True),
             nn.Conv2d(in_channels=512, \
                     out_channels=1, kernel_size=(1,1)), #bx2xWxH
-            nn.Softplus(beta=1, threshold=20),
+            nn.Softplus(beta=1, threshold=20) if not REL_LOSS else nn.Softmax(),
         )
         self.deep_attentions = nn.Sequential(
             nn.Conv2d(in_channels=self.feature_encoder.encoded_channels, \
@@ -275,7 +277,7 @@ class MultiAttentionLayer2(LightningModule):
             nn.ReLU(True),
             nn.Conv2d(in_channels=512, \
                     out_channels=1, kernel_size=(1,1)), #bx2xWxH
-            nn.Softplus(beta=1, threshold=20),
+            nn.Softplus(beta=1, threshold=20) if not REL_LOSS else nn.Softmax(),
         )
 
     def softmax(self, ux):
