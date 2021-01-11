@@ -13,9 +13,9 @@ import scipy
 import scipy.io
 import scipy.misc
 
-#from lib.model_test import D2Net
+# from lib.model_test import D2Net
 from externals.d2net.lib.utils import preprocess_image
-#from lib.pyramid import process_multiscale
+# from lib.pyramid import process_multiscale
 
 # added
 from lib.feature_extractor import extraction_model as em
@@ -23,7 +23,9 @@ from lib import autoencoder, attention_model
 from lib import load_checkpoint
 from pqdm.threads import pqdm
 import os
-#from externals.d2net.lib import localization, utils
+import random
+import matplotlib.pyplot as plt
+# from externals.d2net.lib import localization, utils
 
 
 # CUDA
@@ -91,6 +93,10 @@ parser.add_argument(
     help='output file type (npz or mat)'
 )
 
+parser.add_argument(
+    '--num_images', type=int, default=5, help='How many sample to choose'
+)
+
 args = parser.parse_args()
 
 print(args)
@@ -115,7 +121,7 @@ encoder = EncoderModule.load_from_checkpoint(encoder_ckpt,
                                              first_stride=args.first_stride,
                                              load_tf_weights=False).eval()
 
-#encoder = autoencoder.FeatureEncoder1.load_from_checkpoint(args.encoder_ckpt, load_tf_weights=False).eval()
+# encoder = autoencoder.FeatureEncoder1.load_from_checkpoint(args.encoder_ckpt, load_tf_weights=False).eval()
 
 attention_ckpt = load_checkpoint.get_attention_ckpt(args.attention_ckpt)
 exec('AttentionModule = attention_model.' + args.attention_model)
@@ -144,9 +150,13 @@ for l in lines:
         print(f"Failed to find {l.strip()}")
         raise Exception("File not found")
 
-
-def process_line(line):
+indices = list(range(len(lines)))
+random.shuffle(indices)
+indices = indices[:args.num_images]
+lines = [lines[i] for i in indices]
+for line in tqdm(lines, total=len(lines)):
     path = line.strip()
+
     image = imageio.imread(path)
     if len(image.shape) == 2:
         image = image[:, :, np.newaxis]
@@ -154,6 +164,7 @@ def process_line(line):
 
     # TODO: switch to PIL.Image due to deprecation of scipy.misc.imresize.
     resized_image = image
+    print(resized_image.shape)
     if max(resized_image.shape) > args.max_edge:
         resized_image = scipy.misc.imresize(
             resized_image,
@@ -168,6 +179,7 @@ def process_line(line):
     fact_i = image.shape[0] / resized_image.shape[0]
     fact_j = image.shape[1] / resized_image.shape[1]
 
+    print(resized_image.shape)
     input_image = preprocess_image(
         resized_image,
         preprocessing=args.preprocessing
@@ -178,39 +190,17 @@ def process_line(line):
         if not args.nogpu:
             im = im.cuda()
 
-        #keypoints, scores, descriptors, _ = extraction_model(im)
+        # keypoints, scores, descriptors, _ = extraction_model(im)
         keypoints, descriptors, scores, _ = extraction_model(im)
 
     # Input image coordinates
     keypoints[:, 0] *= fact_i
     keypoints[:, 1] *= fact_j
-    # i, j -> u, v
-    # TODO Find out what the following line is for
-    keypoints = torch.cat([
-        keypoints,
-        torch.ones([keypoints.size(0), 1]),  # * 1 / scale,
-    ], dim=1)
 
-    if args.output_type == 'npz':
-        with open(path + args.output_extension, 'wb') as output_file:
-            np.savez(
-                output_file,
-                keypoints=keypoints,
-                scores=scores,
-                descriptors=descriptors
-            )
-    elif args.output_type == 'mat':
-        with open(path + args.output_extension, 'wb') as output_file:
-            scipy.io.savemat(
-                output_file,
-                {
-                    'keypoints': keypoints,
-                    'scores': scores,
-                    'descriptors': descriptors
-                }
-            )
-    else:
-        raise ValueError('Unknown output type.')
+    plt.figure()
+    plt.imshow(resized_image)
+    plt.scatter(keypoints[:, 0], keypoints[:, 1])
+plt.show()
 
 
-pqdm(lines, process_line, n_jobs=6)
+# pqdm(lines, process_line, n_jobs=4)
