@@ -1,4 +1,3 @@
-
 import pdb
 import numpy as np
 import torch
@@ -489,28 +488,27 @@ class DistinctivenessLoss(nn.Module):
         return loss
 
 class ReliabilityLoss(nn.Module):
-    def __init__(self, margin=1, safe_radius=4, scaling_steps=3, N=16):
+    """ Reliability loss
+
+    See:
+    R2D2: Repeatable and Reliable Detector and Descriptor, Ch 3.2
+    https://arxiv.org/pdf/1906.06195.pdf
+
+    We interpret the confidence as our attention, i.e. attention = 1 => confidence high -- attention = 0 => confidence low
+    Note that we have to normalize the attention to [0,1] for this to make sense.
+    """
+    def __init__(self, scaling_steps=3):
         super().__init__()
-        self.margin = margin
-        self.safe_radius = safe_radius
         self.scaling_steps = scaling_steps
-        self.device = torch.device('cuda' if torch.cuda.is_available() else "cpu") #torch.device('cpu') if not torch.cuda.is_available() else 
+        self.device = torch.device('cuda' if torch.cuda.is_available() else "cpu")
         
         self.kappa = 0.5
         self.ap_loss_functor = APLoss()
 
         self.name = f'ReliabilityLoss'
-        assert N % 2 == 0, 'N must be pair'
-        self.preproc = nn.AvgPool2d(3, stride=1, padding=1)
-        self.maxpool = nn.MaxPool2d(N+1, stride=1, padding=N//2)
-        self.avgpool = nn.AvgPool2d(N+1, stride=1, padding=N//2)
-        self.lambda_peaky = 0.7
-        self.plot = False
-        self.m = nn.ReLU(True)
     
     def forward(self, x1_encoded, x2_encoded, attentions1, attentions2, correspondences):
         loss = torch.tensor(np.array([0], dtype=np.float32), device = self.device)
-        #ToDo: only count valid samples!
         n_valid = 0.0
         for idx in range(x1_encoded.shape[0]):
             l = self.reliability_loss(x1_encoded, x2_encoded, attentions1, attentions2, correspondences, idx)
@@ -522,15 +520,15 @@ class ReliabilityLoss(nn.Module):
 
     def reliability_loss(self, x1_encoded, x2_encoded, attentions1, attentions2, correspondences, idx):
         """
-        x1_encoded: 1xBx48xWxH (dense_features1) (usually x32x32)
-        x2_encoded: 1xBx48xWxH (dense_features2) (usually x32x32)
-        attentions1: 1xBx1xWxH (scores1)
-        attentions2: 1xBx1xWxH (scores2)
-        correspondences (image1: 1xBx3x256x256 = 1xBx3xw1xh1, ...) -> 32 * 8 = 256 --> 3 scaling steps
+        x1_encoded: BxCxWxH (dense_features1) (usually x32x32)
+        x2_encoded: BxCxWxH (dense_features2) (usually x32x32)
+        attentions1: Bx1xWxH (scores1)
+        attentions2: Bx1xWxH (scores2)
+        correspondences (image1: Bx3x256x256 = Bx3xw1xh1, ...) -> 32 * 8 = 256 --> 3 scaling steps
         idx: batch index (basically loop over all images in the batch)
         out: scalar tensor (1)
         """
-        depth1 = correspondences['depth1'][idx].to(self.device) # [h1, w1]???
+        depth1 = correspondences['depth1'][idx].to(self.device)
         intrinsics1 = correspondences['intrinsics1'][idx].to(self.device)  # [3, 3]
         pose1 = correspondences['pose1'][idx].view(4, 4).to(self.device)  # [4, 4]
         bbox1 = correspondences['bbox1'][idx].to(self.device) # [2]
@@ -587,6 +585,10 @@ class ReliabilityLoss(nn.Module):
         )
         scores2 = scores2[fmap_pos2[0, :], fmap_pos2[1, :]].view(-1)
 
+        ## So far, this is mostly copied from the other loss functions
+        # We expect:
+        # descriptors1, descriptors2 are aligned, such that d1[idx] corresponds to d2[idx]. Furthermore, they are l2-normalized
+        # We can now compute the pairwise distances and feed them to the AP-loss
         
         # Compute matrix of euclidean distances between descriptors
         AP_matrix = torch.cdist(descriptors1.t(), descriptors2.t(), p=2)  # \in (n_corr, n_corr)
