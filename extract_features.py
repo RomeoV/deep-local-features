@@ -13,9 +13,9 @@ import scipy
 import scipy.io
 import scipy.misc
 
-#from lib.model_test import D2Net
+# from lib.model_test import D2Net
 from externals.d2net.lib.utils import preprocess_image
-#from lib.pyramid import process_multiscale
+# from lib.pyramid import process_multiscale
 
 # added
 from lib.feature_extractor import extraction_model as em
@@ -23,7 +23,7 @@ from lib import autoencoder, attention_model
 from lib import load_checkpoint
 from pqdm.threads import pqdm
 import os
-#from externals.d2net.lib import localization, utils
+# from externals.d2net.lib import localization, utils
 
 
 # CUDA
@@ -115,7 +115,7 @@ encoder = EncoderModule.load_from_checkpoint(encoder_ckpt,
                                              first_stride=args.first_stride,
                                              load_tf_weights=False).eval()
 
-#encoder = autoencoder.FeatureEncoder1.load_from_checkpoint(args.encoder_ckpt, load_tf_weights=False).eval()
+# encoder = autoencoder.FeatureEncoder1.load_from_checkpoint(args.encoder_ckpt, load_tf_weights=False).eval()
 
 attention_ckpt = load_checkpoint.get_attention_ckpt(args.attention_ckpt)
 exec('AttentionModule = attention_model.' + args.attention_model)
@@ -145,7 +145,7 @@ for l in lines:
         raise Exception("File not found")
 
 
-def process_line(line):
+for line in tqdm(lines, total=len(lines)):
     path = line.strip()
     image = imageio.imread(path)
     if len(image.shape) == 2:
@@ -178,7 +178,7 @@ def process_line(line):
         if not args.nogpu:
             im = im.cuda()
 
-        #keypoints, scores, descriptors, _ = extraction_model(im)
+        # keypoints, scores, descriptors, _ = extraction_model(im)
         keypoints, descriptors, scores, _ = extraction_model(im)
 
     # Input image coordinates
@@ -211,6 +211,3 @@ def process_line(line):
             )
     else:
         raise ValueError('Unknown output type.')
-
-
-pqdm(lines, process_line, n_jobs=6)
