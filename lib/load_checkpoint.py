@@ -12,7 +12,8 @@ ENCODER = {
 
 ATTENTION = {
     "cfe64_multi_attention": "tb_logs/cfe64_multi_attention_model_distinctiveness%2B_loss/version_2/checkpoints/epoch%3D4-step%3D582.ckpt",
-    "cfe64_multi_attention_v2": "tb_logs/cfe64_multi_attention_model2_distinctiveness%2B_loss/version_0/checkpoints/epoch%3D24-step%3D3624.ckpt"
+    "cfe64_multi_attention_v2": "tb_logs/cfe64_multi_attention_model2_distinctiveness%2B_loss/version_0/checkpoints/epoch%3D24-step%3D3624.ckpt",
+    "multiattention_dest_N32": "tb_logs/cfe64_multi_attention_model_distinctiveness%2B_lossN32_l1/version_0/checkpoints/epoch%3D31-step%3D4639.ckpt"
 }
 
 

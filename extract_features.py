@@ -21,7 +21,7 @@ from externals.d2net.lib.utils import preprocess_image
 from lib.feature_extractor import extraction_model as em
 from lib import autoencoder, attention_model
 from lib import load_checkpoint
-from pqdm.threads import pqdm
+#from pqdm.threads import pqdm
 import os
 # from externals.d2net.lib import localization, utils
 
@@ -125,7 +125,7 @@ attention = AttentionModule.load_from_checkpoint(
 
 extraction_model = em.ExtractionModel(
     attention,
-    max_features=None,
+    max_features=512,
     use_d2net_detection=args.d2net_localization,
     num_upsampling=num_upsampling_extraction,
     thresh=args.thresh,
@@ -154,24 +154,25 @@ for line in tqdm(lines, total=len(lines)):
 
     # TODO: switch to PIL.Image due to deprecation of scipy.misc.imresize.
     resized_image = image
-    if max(resized_image.shape) > args.max_edge:
-        resized_image = scipy.misc.imresize(
-            resized_image,
-            args.max_edge / max(resized_image.shape)
-        ).astype('float')
-    if sum(resized_image.shape[: 2]) > args.max_sum_edges:
-        resized_image = scipy.misc.imresize(
-            resized_image,
-            args.max_sum_edges / sum(resized_image.shape[: 2])
-        ).astype('float')
-
-    fact_i = image.shape[0] / resized_image.shape[0]
-    fact_j = image.shape[1] / resized_image.shape[1]
+    # if max(resized_image.shape) > args.max_edge:
+    #     resized_image = scipy.misc.imresize(
+    #         resized_image,
+    #         args.max_edge / max(resized_image.shape)
+    #     ).astype('float')
+    # if sum(resized_image.shape[: 2]) > args.max_sum_edges:
+    #     resized_image = scipy.misc.imresize(
+    #         resized_image,
+    #         args.max_sum_edges / sum(resized_image.shape[: 2])
+    #     ).astype('float')
+    #
+    # fact_i = image.shape[0] / resized_image.shape[0]
+    # fact_j = image.shape[1] / resized_image.shape[1]
 
     input_image = preprocess_image(
         resized_image,
         preprocessing=args.preprocessing
     )
+    input_image = resized_image
     with torch.no_grad():
         im = torch.tensor(
             input_image[np.newaxis, :, :, :].astype(np.float32))
@@ -181,9 +182,9 @@ for line in tqdm(lines, total=len(lines)):
         # keypoints, scores, descriptors, _ = extraction_model(im)
         keypoints, descriptors, scores, _ = extraction_model(im)
 
-    # Input image coordinates
-    keypoints[:, 0] *= fact_i
-    keypoints[:, 1] *= fact_j
+    # # Input image coordinates
+    # keypoints[:, 0] *= fact_i
+    # keypoints[:, 1] *= fact_j
     # i, j -> u, v
     # TODO Find out what the following line is for
     keypoints = torch.cat([
@@ -211,3 +212,7 @@ for line in tqdm(lines, total=len(lines)):
             )
     else:
         raise ValueError('Unknown output type.')
+
+    #del keypoints, descriptors, scores, input_image, resized_image, image, im
+    #if not args.nogpu:
+    #    torch.cuda.empty_cache()
