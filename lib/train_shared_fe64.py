@@ -6,11 +6,14 @@ import torchvision.models
 from torch.nn import functional as F
 import pytorch_lightning
 
-from lib.correspondence_datamodule import ResnetCorrespondenceExtractor, ResnetActivationExtractor, CorrespondenceDataModule
+from lib.correspondence_datamodule import ResnetCorrespondenceExtractor, ResnetActivationExtractor, \
+    CorrespondenceDataModule
 from lib.tf_weight_loader import load_weights
 from lib.tf_weight_loader import mapping as default_mapping
 from pytorch_lightning.loggers import TensorBoardLogger
 from lib.loss import *
+
+
 class CorrespondenceEncoder(LightningModule):
     def __init__(self, load_tf_weights=True):
         super().__init__()
@@ -69,17 +72,15 @@ class CorrespondenceEncoder(LightningModule):
                 nn.ReLU(True),
             ),
         }
-        
+
         # we need this such that the encoders get tranfered to gpu automatically
         self.e1 = self.encoder['early']
         self.e2 = self.encoder['middle']
         self.e3 = self.encoder['deep']
 
-
         self.d1 = self.decoder['early']
         self.d2 = self.decoder['middle']
         self.d3 = self.decoder['deep']
-
 
         self.correspondence_loss = CorrespondenceLoss()
 
@@ -109,7 +110,9 @@ class CorrespondenceEncoder(LightningModule):
             z2[s] = self.encoder[s](x2[s])
             x_hat2[s] = self.decoder[s](z2[s])
 
-        loss = sum((F.mse_loss(x1[s], x_hat1[s]) + F.mse_loss(x2[s], x_hat2[s]) + self.cfactor * self.correspondence_loss(z1[s],z2[s], batch)) for s in self.stages)
+        loss = sum((F.mse_loss(x1[s], x_hat1[s]) + F.mse_loss(x2[s],
+                                                              x_hat2[s]) + self.cfactor * self.correspondence_loss(
+            z1[s], z2[s], batch)) for s in self.stages)
 
         self.log('train_loss', loss)
 
@@ -129,14 +132,16 @@ class CorrespondenceEncoder(LightningModule):
             z2[s] = self.encoder[s](x2[s])
             x_hat2[s] = self.decoder[s](z2[s])
 
-        loss = sum((F.mse_loss(x1[s], x_hat1[s]) + F.mse_loss(x2[s], x_hat2[s]) + self.cfactor * self.correspondence_loss(z1[s],z2[s], batch)) for s in self.stages)
+        loss = sum((F.mse_loss(x1[s], x_hat1[s]) + F.mse_loss(x2[s],
+                                                              x_hat2[s]) + self.cfactor * self.correspondence_loss(
+            z1[s], z2[s], batch)) for s in self.stages)
 
         self.log('validation_loss', loss)
 
         return loss
 
     def configure_optimizers(self):
-        optimizer = torch.optim.Adam(self.parameters(), lr=1.0*1e-3)
+        optimizer = torch.optim.Adam(self.parameters(), lr=1.0 * 1e-3)
         return optimizer
 
     @torch.no_grad()
@@ -148,7 +153,7 @@ class CorrespondenceEncoder(LightningModule):
         #     'deep': nn.Upsample(scale_factor=2, mode="bilinear", align_corners=True),
         # }
         activation_transform = {
-            'early' : lambda x: x,
+            'early': lambda x: x,
             'middle': nn.Upsample(scale_factor=2, mode="bilinear", align_corners=True),
             'deep': nn.Upsample(scale_factor=4, mode="bilinear", align_corners=True),
         }
@@ -157,10 +162,10 @@ class CorrespondenceEncoder(LightningModule):
                 'deep': activation_transform['deep'](activations["layer4"])}
 
 
-if __name__=="__main__":
+if __name__ == "__main__":
     autoencoder = CorrespondenceEncoder()
     tb_logger = TensorBoardLogger('tb_logs', name='correspondence_encoder_lr1e3')
-    trainer = pytorch_lightning.Trainer(logger = tb_logger,
-        gpus=1 if torch.cuda.is_available() else None)
+    trainer = pytorch_lightning.Trainer(logger=tb_logger,
+                                        gpus=1 if torch.cuda.is_available() else None)
     dm = CorrespondenceDataModule()
     trainer.fit(autoencoder, dm)

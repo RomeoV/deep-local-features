@@ -21,6 +21,7 @@ from externals.d2net.lib.utils import preprocess_image
 from lib.feature_extractor import extraction_model as em
 from lib import autoencoder, attention_model
 from lib import load_checkpoint
+from lib.train_shared_fe64 import CorrespondenceEncoder
 #from pqdm.threads import pqdm
 import os
 # from externals.d2net.lib import localization, utils
@@ -38,15 +39,15 @@ parser.add_argument(
     help='encoder model name'
 )
 parser.add_argument(
-    '--attention_model', type=str, default='MultiAttentionLayer',
+    '--attention_model', type=str, default='MultiAttentionLayer2',
     help='attention model name'
 )
 parser.add_argument(
-    '--encoder_ckpt', type=str, default='correspondence_encoder',
+    '--encoder_ckpt', type=str, default='correspondence_encoder_lr1e3',
     help='path to encoder checkpoint'
 )
 parser.add_argument(
-    '--attention_ckpt', type=str, default='cfe64_multi_attention',
+    '--attention_ckpt', type=str, default='cfe64_multi_attention_model2_distinctiveness+_lossN64_lambda1',
     help='path to attention checkpoint'
 )
 parser.add_argument(
@@ -58,6 +59,18 @@ parser.add_argument(
 )
 parser.add_argument(
     '--nogpu', action='store_true', default=False, help="Whether or not to use gpu"
+)
+parser.add_argument(
+    '--scale', action='store_true', default=False, help="Preprocess and scale large images"
+)
+parser.add_argument(
+    '--append', action='store_true', default=False, help="Append ones to descriptors"
+)
+parser.add_argument(
+    '--load_from_folder', action='store_true', default=False, help='load checkpoints from ./checkpoints/'
+)
+parser.add_argument(
+    '--use_cor_model', action='store_true', default=False, help='use correspondence model from train_shared_fe64'
 )
 parser.add_argument('--thresh', type=float, default=0.2,
                     help="Threshold for detection")
@@ -154,25 +167,25 @@ for line in tqdm(lines, total=len(lines)):
 
     # TODO: switch to PIL.Image due to deprecation of scipy.misc.imresize.
     resized_image = image
-    # if max(resized_image.shape) > args.max_edge:
-    #     resized_image = scipy.misc.imresize(
-    #         resized_image,
-    #         args.max_edge / max(resized_image.shape)
-    #     ).astype('float')
-    # if sum(resized_image.shape[: 2]) > args.max_sum_edges:
-    #     resized_image = scipy.misc.imresize(
-    #         resized_image,
-    #         args.max_sum_edges / sum(resized_image.shape[: 2])
-    #     ).astype('float')
-    #
-    # fact_i = image.shape[0] / resized_image.shape[0]
-    # fact_j = image.shape[1] / resized_image.shape[1]
+    if args.scale:
+        if max(resized_image.shape) > args.max_edge:
+            resized_image = scipy.misc.imresize(
+                resized_image,
+                args.max_edge / max(resized_image.shape)
+            ).astype('float')
+        if sum(resized_image.shape[: 2]) > args.max_sum_edges:
+            resized_image = scipy.misc.imresize(
+                resized_image,
+                args.max_sum_edges / sum(resized_image.shape[: 2])
+            ).astype('float')
+
+        fact_i = image.shape[0] / resized_image.shape[0]
+        fact_j = image.shape[1] / resized_image.shape[1]
 
     input_image = preprocess_image(
         resized_image,
         preprocessing=args.preprocessing
     )
-    input_image = resized_image
     with torch.no_grad():
         im = torch.tensor(
             input_image[np.newaxis, :, :, :].astype(np.float32))
@@ -183,14 +196,16 @@ for line in tqdm(lines, total=len(lines)):
         keypoints, descriptors, scores, _ = extraction_model(im)
 
     # # Input image coordinates
-    # keypoints[:, 0] *= fact_i
-    # keypoints[:, 1] *= fact_j
+    if args.scale:
+        keypoints[:, 0] *= fact_i
+        keypoints[:, 1] *= fact_j
     # i, j -> u, v
     # TODO Find out what the following line is for
-    keypoints = torch.cat([
-        keypoints,
-        torch.ones([keypoints.size(0), 1]),  # * 1 / scale,
-    ], dim=1)
+    if args.append:
+        keypoints = torch.cat([
+            keypoints,
+            torch.ones([keypoints.size(0), 1]),  # * 1 / scale,
+        ], dim=1)
 
     if args.output_type == 'npz':
         with open(path + args.output_extension, 'wb') as output_file:

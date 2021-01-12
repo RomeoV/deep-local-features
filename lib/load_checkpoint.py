@@ -6,14 +6,29 @@ from getpass import getpass
 
 BASE_URL = "https://polybox.ethz.ch/remote.php/webdav/Shared/Deep%20Learning/"
 
+# model train_shared_fe64.CorrespondenceEncoder
 ENCODER = {
-    "correspondence_encoder": "tb_logs/correspondence_encoder_lr1e3/version_0/checkpoints/epoch%3D14-step%3D2174.ckpt"
+    "correspondence_encoder": "tb_logs/correspondence_encoder/version_5/checkpoints/epoch%3D37-step%3D5509.ckpt",
+    "correspondence_encoder_lr1e3": "tb_logs/correspondence_encoder_lr1e3/version_0/checkpoints/epoch%3D44-step%3D6524.ckpt",
 }
 
+# models : attention_model.AttentionLayer, AttentionLayer2, MultiAttentionLayer, MultiAttentionLayer2
 ATTENTION = {
-    "cfe64_multi_attention": "tb_logs/cfe64_multi_attention_model_distinctiveness%2B_loss/version_2/checkpoints/epoch%3D4-step%3D582.ckpt",
-    "cfe64_multi_attention_v2": "tb_logs/cfe64_multi_attention_model2_distinctiveness%2B_loss/version_0/checkpoints/epoch%3D24-step%3D3624.ckpt",
-    "multiattention_dest_N32": "tb_logs/cfe64_multi_attention_model_distinctiveness%2B_lossN32_l1/version_0/checkpoints/epoch%3D31-step%3D4639.ckpt"
+    "attention_model": "tb_logs/attention_model/version_9/checkpoints/epoch%3D44-step%3D6524.ckpt",
+    "attention_model_delf_distinctiveness_loss": "tb_logs/attention_model_delf_distinctiveness_loss/version_1/checkpoints/epoch%3D4-step%3D586.ckpt",
+    "attention_model_sum_distinctiveness_loss": "tb_logs/attention_model_sum_distinctiveness_loss/version_4/checkpoints/epoch%3D40-step%3D5808.ckpt",
+    "cfe64_multi_attention_model2_d2netloss": "tb_logs/cfe64_multi_attention_model2_d2netloss/version_0/checkpoints/epoch%3D35-step%3D5219.ckpt",
+    "cfe64_multi_attention_model2_d2netloss_backprop": "tb_logs/cfe64_multi_attention_model2_d2netloss_backprop/version_0/checkpoints/epoch%3D25-step%3D3769.ckpt",
+    "cfe64_multi_attention_model2_distinctiveness+_loss": "tb_logs/cfe64_multi_attention_model2_distinctiveness%2B_loss/version_0/checkpoints/epoch%3D41-step%3D6089.ckpt",
+    "cfe64_multi_attention_model2_distinctiveness+_lossN8_lambda1": "tb_logs/cfe64_multi_attention_model2_distinctiveness%2B_lossN8_lambda1/version_0/checkpoints/epoch%3D31-step%3D4639.ckpt",
+    "cfe64_multi_attention_model2_distinctiveness+_lossN32_lambda1": "tb_logs/cfe64_multi_attention_model2_distinctiveness%2B_lossN32_lambda1/version_0/checkpoints/epoch%3D26-step%3D3914.ckpt",
+    "cfe64_multi_attention_model2_distinctiveness+_lossN64_lambda1": "tb_logs/cfe64_multi_attention_model2_distinctiveness%2B_lossN64_lambda1/version_0/checkpoints/epoch%3D26-step%3D3914.ckpt",
+    "cfe64_multi_attention_model_d2netloss": "tb_logs/cfe64_multi_attention_model_d2netloss/version_0/checkpoints/epoch%3D26-step%3D3914.ckpt",
+    "cfe64_multi_attention_model_d2netloss_backprop": "tb_logs/cfe64_multi_attention_model_d2netloss_backprop/version_0/checkpoints/epoch%3D34-step%3D5074.ckpt",
+    "cfe64_multi_attention_model_distinctiveness+_loss": "tb_logs/cfe64_multi_attention_model_distinctiveness%2B_loss/version_2/checkpoints/epoch%3D4-step%3D582.ckpt",
+    "cfe64_multi_attention_model_distinctiveness+_lossN8_l1": "tb_logs/cfe64_multi_attention_model_distinctiveness%2B_lossN8_l1/version_0/checkpoints/epoch%3D36-step%3D5364.ckpt",
+    "cfe64_multi_attention_model_distinctiveness+_lossN32_l1": "tb_logs/cfe64_multi_attention_model_distinctiveness%2B_lossN32_l1/version_0/checkpoints/epoch%3D31-step%3D4639.ckpt",
+    "multi_attention_model_distinctiveness_loss": "tb_logs/multi_attention_model_distinctiveness_loss/version_0/checkpoints/epoch%3D58-step%3D8554.ckpt"
 }
 
 
