@@ -120,7 +120,10 @@ else:
 
 if args.first_stride == 1:
     num_upsampling_extraction -= 1
-encoder_ckpt = load_checkpoint.get_encoder_ckpt(args.encoder_ckpt)
+if args.load_from_folder:
+    encoder_ckpt = 'checkpoints/' + args.encoder_ckpt + '.ckpt'
+else:
+    encoder_ckpt = load_checkpoint.get_encoder_ckpt(args.encoder_ckpt)
 exec('EncoderModule = autoencoder.' + args.encoder_model)
 encoder = EncoderModule.load_from_checkpoint(encoder_ckpt,
                                              no_upsampling=no_upsampling,
@@ -130,7 +133,10 @@ encoder = EncoderModule.load_from_checkpoint(encoder_ckpt,
 
 # encoder = autoencoder.FeatureEncoder1.load_from_checkpoint(args.encoder_ckpt, load_tf_weights=False).eval()
 
-attention_ckpt = load_checkpoint.get_attention_ckpt(args.attention_ckpt)
+if args.load_from_folder:
+    attention_ckpt = 'checkpoints/' + args.attention_ckpt + '.ckpt'
+else:
+    attention_ckpt = load_checkpoint.get_attention_ckpt(args.attention_ckpt)
 exec('AttentionModule = attention_model.' + args.attention_model)
 attention = AttentionModule.load_from_checkpoint(
     attention_ckpt, feature_encoder=encoder).eval()
