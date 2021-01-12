@@ -503,7 +503,6 @@ class ReliabilityLoss(nn.Module):
         self.device = torch.device('cuda' if torch.cuda.is_available() else "cpu")
         
         self.kappa = 0.5
-        self.ap_loss_functor = APLoss()
 
         self.name = f'ReliabilityLoss'
     
@@ -511,6 +510,7 @@ class ReliabilityLoss(nn.Module):
         loss = torch.tensor(np.array([0], dtype=np.float32), device = self.device)
         n_valid = 0.0
         for idx in range(x1_encoded.shape[0]):
+            if idx % 10 == 0: print(f"Batch {idx}")
             l = self.reliability_loss(x1_encoded, x2_encoded, attentions1, attentions2, correspondences, idx)
             if l is not None:
                 loss += l
@@ -591,9 +591,10 @@ class ReliabilityLoss(nn.Module):
         # We can now compute the pairwise distances and feed them to the AP-loss
         
         # Compute matrix of euclidean distances between descriptors
-        AP_matrix = torch.cdist(descriptors1.t(), descriptors2.t(), p=2)  # \in (n_corr, n_corr)
-        gt_assignments = torch.eye(AP_matrix.shape[0], dtype=torch.uint8)  # since the descriptors are ordered, we know that the matching distances are on the diagonal
-        ap_loss = self.ap_loss_functor(AP_matrix, gt_assignments)
+        AP_matrix = torch.cdist(descriptors1.t(), descriptors2.t(), p=2).to(self.device)  # \in (n_corr, n_corr)
+        gt_assignments = torch.eye(AP_matrix.shape[0], dtype=torch.uint8).to(self.device)  # since the descriptors are ordered, we know that the matching distances are on the diagonal
+        ap_loss_functor = APLoss(device=self.device)
+        ap_loss = ap_loss_functor(AP_matrix, gt_assignments)
 
         # Interpret attention as confidence (this implies that attentions are in (0,1))
         loss = torch.mean(1 - (ap_loss*scores1 + self.kappa*(1-scores1)))

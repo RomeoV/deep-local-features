@@ -246,6 +246,7 @@ class MultiAttentionLayer2(LightningModule):
         if (REL_LOSS):
             self.loss_reliability = ReliabilityLoss()
             self.loss_distinctiveness = DistinctivenessLoss()
+            #self.loss_distinctiveness = lambda x1, x2, a1, a2, corr: 0
             self.loss = lambda x1, x2, a1, a2, corr: 1*self.loss_reliability(x1,x2,a1,a2,corr) + 1*self.loss_distinctiveness(x1,x2,a1,a2,corr)
         elif (REP_LOSS):
             self.loss = RepeatabilityLoss()

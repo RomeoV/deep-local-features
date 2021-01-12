@@ -72,7 +72,7 @@ class CorrespondenceDataModule(pytorch_lightning.LightningDataModule):
     Can be used very easily with pytorch_lightning training architecture.
     """
 
-    def __init__(self, base_path=None, batch_size=64):
+    def __init__(self, base_path=None, batch_size=16):
         super().__init__()
         self.batch_size = batch_size
         self.num_workers = (multiprocessing.cpu_count() - 2) if multiprocessing.cpu_count() >= 4 else 1

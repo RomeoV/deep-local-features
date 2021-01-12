@@ -18,7 +18,7 @@ class APLoss (nn.Module):
         Returns: list of query AP (for each n in {1..N})
                  Note: typically, you want to minimize 1 - mean(AP)
     """
-    def __init__(self, nq=25, min=0, max=1, euc=False):
+    def __init__(self, device, nq=25, min=0, max=1, euc=False):
         nn.Module.__init__(self)
         assert isinstance(nq, int) and 2 <= nq <= 100
         self.nq = nq
@@ -27,16 +27,18 @@ class APLoss (nn.Module):
         self.euc = euc
         gap = max - min
         assert gap > 0
+
+        self.device = device
         
         # init quantizer = non-learnable (fixed) convolution
-        self.quantizer = q = nn.Conv1d(1, 2*nq, kernel_size=1, bias=True)
+        self.quantizer = q = nn.Conv1d(1, 2*nq, kernel_size=1, bias=True).to(self.device)
         a = (nq-1) / gap
         #1st half = lines passing to (min+x,1) and (min+x+1/a,0) with x = {nq-1..0}*gap/(nq-1)
         q.weight.data[:nq] = -a
-        q.bias.data[:nq] = torch.from_numpy(a*min + np.arange(nq, 0, -1)) # b = 1 + a*(min+x)
+        q.bias.data[:nq] = torch.from_numpy(a*min + np.arange(nq, 0, -1)).to(self.device) # b = 1 + a*(min+x)
         #2nd half = lines passing to (min+x,1) and (min+x-1/a,0) with x = {nq-1..0}*gap/(nq-1)
         q.weight.data[nq:] = a
-        q.bias.data[nq:] = torch.from_numpy(np.arange(2-nq, 2, 1) - a*min) # b = 1 - a*(min+x)
+        q.bias.data[nq:] = torch.from_numpy(np.arange(2-nq, 2, 1) - a*min).to(self.device) # b = 1 - a*(min+x)
         # first and last one are special: just horizontal straight line
         q.weight.data[0] = q.weight.data[-1] = 0
         q.bias.data[0] = q.bias.data[-1] = 1
