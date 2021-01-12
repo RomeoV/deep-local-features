@@ -72,6 +72,9 @@ parser.add_argument(
 parser.add_argument(
     '--use_cor_model', action='store_true', default=False, help='use correspondence model from train_shared_fe64'
 )
+parser.add_argument(
+    '--smart_name', action='store_true', default=False, help='override args.output_extension with smart name and write to checkpoints/extensions.txt'
+)
 parser.add_argument('--thresh', type=float, default=0.2,
                     help="Threshold for detection")
 parser.add_argument('--replace_strides', action='store_true', default=False,
@@ -108,6 +111,14 @@ args = parser.parse_args()
 
 print(args)
 
+if args.smart_name:
+    name = "." + args.attention_ckpt + " " + args.encoder_ckpt + "_"
+    if args.use_cor_model: name+= "CORMODEL"
+    args.output_extension = name
+    f = open("checkpoints/extensions.txt", "a")
+    f.write(name + '\n')
+    f.close()
+
 if args.replace_strides:
     # (True, True, True) # Default: (False, False, False)
     replace_stride_with_dilation = (True, True, True)
@@ -125,11 +136,14 @@ if args.load_from_folder:
 else:
     encoder_ckpt = load_checkpoint.get_encoder_ckpt(args.encoder_ckpt)
 exec('EncoderModule = autoencoder.' + args.encoder_model)
-encoder = EncoderModule.load_from_checkpoint(encoder_ckpt,
-                                             no_upsampling=no_upsampling,
-                                             replace_stride_with_dilation=replace_stride_with_dilation,
-                                             first_stride=args.first_stride,
-                                             load_tf_weights=False).eval()
+if not args.use_cor_model:
+    encoder = EncoderModule.load_from_checkpoint(encoder_ckpt,
+                                                 no_upsampling=no_upsampling,
+                                                 replace_stride_with_dilation=replace_stride_with_dilation,
+                                                 first_stride=args.first_stride,
+                                                 load_tf_weights=False).eval()
+else:
+    encoder = CorrespondenceEncoder.load_from_checkpoint(encoder_ckpt).requires_grad_(False)
 
 # encoder = autoencoder.FeatureEncoder1.load_from_checkpoint(args.encoder_ckpt, load_tf_weights=False).eval()
 
