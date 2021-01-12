@@ -510,7 +510,7 @@ class ReliabilityLoss(nn.Module):
         loss = torch.tensor(np.array([0], dtype=np.float32), device = self.device)
         n_valid = 0.0
         for idx in range(x1_encoded.shape[0]):
-            if idx % 10 == 0: print(f"Batch {idx}")
+            # if idx % 10 == 0: print(f"Batch {idx}")
             l = self.reliability_loss(x1_encoded, x2_encoded, attentions1, attentions2, correspondences, idx)
             if l is not None:
                 loss += l

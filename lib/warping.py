@@ -146,7 +146,7 @@ def interpolate_depth(pos, depth):
     w_bottom_left = dist_i_top_left * (1 - dist_j_top_left)
     w_bottom_right = dist_i_top_left * dist_j_top_left
 
-    print(w_top_left.device, depth.device, depth[i_top_left, j_top_left].device)
+    # print(w_top_left.device, depth.device, depth[i_top_left, j_top_left].device)
     interpolated_depth = (
         w_top_left * depth[i_top_left, j_top_left] +
         w_top_right * depth[i_top_right, j_top_right] +

@@ -12,6 +12,7 @@ from lib.autoencoder import *
 from lib.train_shared_fe64 import *
 REP_LOSS = False
 REL_LOSS = True
+DIS_LOSS = True
 
 class AttentionLayer(LightningModule):
     def __init__(self, feature_encoder):
@@ -243,15 +244,17 @@ class MultiAttentionLayer2(LightningModule):
     def __init__(self, feature_encoder):
         super().__init__()
         self.feature_encoder = feature_encoder
+        loss_fns = []
         if (REL_LOSS):
-            self.loss_reliability = ReliabilityLoss()
-            self.loss_distinctiveness = DistinctivenessLoss()
-            #self.loss_distinctiveness = lambda x1, x2, a1, a2, corr: 0
-            self.loss = lambda x1, x2, a1, a2, corr: 1*self.loss_reliability(x1,x2,a1,a2,corr) + 1*self.loss_distinctiveness(x1,x2,a1,a2,corr)
-        elif (REP_LOSS):
-            self.loss = RepeatabilityLoss()
-        else:
-            self.loss = DistinctivenessLoss()
+            self.reliability_loss = ReliabilityLoss()
+            loss_fns += [self.reliability_loss]
+        if (REP_LOSS):
+            self.repeatability_loss = RepeatabilityLoss()
+            loss_fns += [self.repeatability_loss]
+        if (DIS_LOSS):
+            self.distinctiveness_loss = DistinctivenessLoss()
+            loss_fns += [self.distinctiveness_loss]
+        self.loss = lambda x1, x2, a1, a2, corr: sum(loss_fn(x1, x2, a1, a2, corr) for loss_fn in loss_fns)
 
         self.early_attentions = nn.Sequential(
             nn.Conv2d(in_channels=self.feature_encoder.encoded_channels, \
@@ -260,7 +263,7 @@ class MultiAttentionLayer2(LightningModule):
             nn.ReLU(True),
             nn.Conv2d(in_channels=512, \
                     out_channels=1, kernel_size=(1,1)), #bx2xWxH
-            nn.Softplus(beta=1, threshold=20) if not REL_LOSS else nn.Softmax(),
+            nn.Softplus(beta=1, threshold=20) if not REL_LOSS else nn.Sigmoid(),
         )
         self.middle_attentions = nn.Sequential(
             nn.Conv2d(in_channels=self.feature_encoder.encoded_channels, \
@@ -269,7 +272,7 @@ class MultiAttentionLayer2(LightningModule):
             nn.ReLU(True),
             nn.Conv2d(in_channels=512, \
                     out_channels=1, kernel_size=(1,1)), #bx2xWxH
-            nn.Softplus(beta=1, threshold=20) if not REL_LOSS else nn.Softmax(),
+            nn.Softplus(beta=1, threshold=20) if not REL_LOSS else nn.Sigmoid(),
         )
         self.deep_attentions = nn.Sequential(
             nn.Conv2d(in_channels=self.feature_encoder.encoded_channels, \
@@ -278,7 +281,7 @@ class MultiAttentionLayer2(LightningModule):
             nn.ReLU(True),
             nn.Conv2d(in_channels=512, \
                     out_channels=1, kernel_size=(1,1)), #bx2xWxH
-            nn.Softplus(beta=1, threshold=20) if not REL_LOSS else nn.Softmax(),
+            nn.Softplus(beta=1, threshold=20) if not REL_LOSS else nn.Sigmoid(),
         )
 
     def softmax(self, ux):
@@ -303,15 +306,14 @@ class MultiAttentionLayer2(LightningModule):
             x1_encoded = self.feature_encoder.forward(x1)
             x2_encoded = self.feature_encoder.forward(x2)
 
-        # x1_encoded.requires_grad = False
-        # x2_encoded.requires_grad = False
+        for s in self.feature_encoder.stages:
+            x1_encoded[s].requires_grad_(True)
+            x2_encoded[s].requires_grad_(True)
+
         y1 = self.forward(x1_encoded)
         y2 = self.forward(x2_encoded)
 
-        loss = torch.tensor(np.array([0], dtype=np.float32), device='cuda' if torch.cuda.is_available() else "cpu")
-
-        for layer in x1_encoded.keys():
-            loss = loss +  self.loss(x1_encoded[layer], x2_encoded[layer], y1[layer], y2[layer], batch)
+        loss = sum(self.loss(x1_encoded[layer], x2_encoded[layer], y1[layer], y2[layer], batch) for layer in self.feature_encoder.stages)
         
         self.log('train_loss', loss)
         return loss
@@ -345,7 +347,7 @@ class MultiAttentionLayer2(LightningModule):
 if __name__ == "__main__":
     autoencoder = CorrespondenceEncoder.load_from_checkpoint("tb_logs/correspondence_encoder_lr1e3/version_0/checkpoints/epoch=7-step=1159_interm.ckpt").requires_grad_(False)
     attentions = MultiAttentionLayer2(autoencoder)
-    tb_logger = TensorBoardLogger('tb_logs', name='attention_reliability_loss_multiatt2_corenc_cfe64-lr1e3')
+    tb_logger = TensorBoardLogger('tb_logs', name='attention_distinctiveness_reliability_loss_multiatt2_corenc_cfe64-lr1e4')
     trainer = pytorch_lightning.Trainer(logger=tb_logger, gpus=1 if torch.cuda.is_available() else None)
     dm = CorrespondenceDataModule()
     trainer.fit(attentions, dm)
