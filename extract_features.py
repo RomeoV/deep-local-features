@@ -131,6 +131,9 @@ else:
 
 if args.first_stride == 1:
     num_upsampling_extraction -= 1
+
+num_upsampling_extraction += 1
+
 if args.load_from_folder:
     encoder_ckpt = 'checkpoints/' + args.encoder_ckpt + '.ckpt'
 else:

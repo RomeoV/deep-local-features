@@ -18,7 +18,7 @@ use_cuda = torch.cuda.is_available()
 device = torch.device('cuda:0' if use_cuda else 'cpu')
 
 methods = ['cfe64_multi_attention_model2_d2netloss_backprop correspondence_encoder_lr1e3_CORMODEL',
-           'cfe64_multi_attention_model2_d2netloss correspondence_encoder_lr1e3_CORMODEL',
+           #'cfe64_multi_attention_model2_d2netloss correspondence_encoder_lr1e3_CORMODEL', #error
            'cfe64_multi_attention_model2_distinctiveness+_loss correspondence_encoder_lr1e3_CORMODEL',
            'cfe64_multi_attention_model2_distinctiveness+_lossN32_lambda1 correspondence_encoder_lr1e3_CORMODEL',
            'cfe64_multi_attention_model2_distinctiveness+_lossN64_lambda1 correspondence_encoder_lr1e3_CORMODEL',
