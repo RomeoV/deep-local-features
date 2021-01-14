@@ -19,16 +19,29 @@ ATTENTION = {
     "attention_model_sum_distinctiveness_loss": "tb_logs/attention_model_sum_distinctiveness_loss/version_4/checkpoints/epoch%3D40-step%3D5808.ckpt",
     "cfe64_multi_attention_model2_d2netloss": "tb_logs/cfe64_multi_attention_model2_d2netloss/version_0/checkpoints/epoch%3D35-step%3D5219.ckpt",
     "cfe64_multi_attention_model2_d2netloss_backprop": "tb_logs/cfe64_multi_attention_model2_d2netloss_backprop/version_0/checkpoints/epoch%3D25-step%3D3769.ckpt",
-    "cfe64_multi_attention_model2_distinctiveness+_loss": "tb_logs/cfe64_multi_attention_model2_distinctiveness%2B_loss/version_0/checkpoints/epoch%3D41-step%3D6089.ckpt",
-    "cfe64_multi_attention_model2_distinctiveness+_lossN8_lambda1": "tb_logs/cfe64_multi_attention_model2_distinctiveness%2B_lossN8_lambda1/version_0/checkpoints/epoch%3D31-step%3D4639.ckpt",
-    "cfe64_multi_attention_model2_distinctiveness+_lossN32_lambda1": "tb_logs/cfe64_multi_attention_model2_distinctiveness%2B_lossN32_lambda1/version_0/checkpoints/epoch%3D26-step%3D3914.ckpt",
-    "cfe64_multi_attention_model2_distinctiveness+_lossN64_lambda1": "tb_logs/cfe64_multi_attention_model2_distinctiveness%2B_lossN64_lambda1/version_0/checkpoints/epoch%3D26-step%3D3914.ckpt",
+    ##"cfe64_multi_attention_model2_distinctiveness+_loss": "tb_logs/cfe64_multi_attention_model2_distinctiveness%2B_loss/version_0/checkpoints/epoch%3D41-step%3D6089.ckpt",
+    ##"cfe64_multi_attention_model2_distinctiveness+_lossN8_lambda1": "tb_logs/cfe64_multi_attention_model2_distinctiveness%2B_lossN8_lambda1/version_0/checkpoints/epoch%3D31-step%3D4639.ckpt",
+    ##"cfe64_multi_attention_model2_distinctiveness+_lossN32_lambda1": "tb_logs/cfe64_multi_attention_model2_distinctiveness%2B_lossN32_lambda1/version_0/checkpoints/epoch%3D26-step%3D3914.ckpt",
+    ##"cfe64_multi_attention_model2_distinctiveness+_lossN64_lambda1": "tb_logs/cfe64_multi_attention_model2_distinctiveness%2B_lossN64_lambda1/version_0/checkpoints/epoch%3D26-step%3D3914.ckpt",
     "cfe64_multi_attention_model_d2netloss": "tb_logs/cfe64_multi_attention_model_d2netloss/version_0/checkpoints/epoch%3D26-step%3D3914.ckpt",
     "cfe64_multi_attention_model_d2netloss_backprop": "tb_logs/cfe64_multi_attention_model_d2netloss_backprop/version_0/checkpoints/epoch%3D34-step%3D5074.ckpt",
     "cfe64_multi_attention_model_distinctiveness+_loss": "tb_logs/cfe64_multi_attention_model_distinctiveness%2B_loss/version_2/checkpoints/epoch%3D4-step%3D582.ckpt",
     "cfe64_multi_attention_model_distinctiveness+_lossN8_l1": "tb_logs/cfe64_multi_attention_model_distinctiveness%2B_lossN8_l1/version_0/checkpoints/epoch%3D36-step%3D5364.ckpt",
     "cfe64_multi_attention_model_distinctiveness+_lossN32_l1": "tb_logs/cfe64_multi_attention_model_distinctiveness%2B_lossN32_l1/version_0/checkpoints/epoch%3D31-step%3D4639.ckpt",
-    "multi_attention_model_distinctiveness_loss": "tb_logs/multi_attention_model_distinctiveness_loss/version_0/checkpoints/epoch%3D58-step%3D8554.ckpt"
+    "multi_attention_model_distinctiveness_loss": "tb_logs/multi_attention_model_distinctiveness_loss/version_0/checkpoints/epoch%3D58-step%3D8554.ckpt",
+
+    "cfe64_multi_attention_model2_distinctiveness+_lossN16_lambda01_sm_lowmargin" : "tb_logs/cfe64_multi_attention_model2_distinctiveness%2B_lossN16_lambda01_sm_lowmargin/version_0/checkpoints/epoch%3D19-step%3D2899.ckpt",
+    "cfe64_multi_attention_model2_distinctiveness+_lossN16_lambda01_lowmargin" : "tb_logs/cfe64_multi_attention_model2_distinctiveness%2B_lossN16_lambda01_lowmargin/version_0/checkpoints/epoch%3D24-step%3D3624.ckpt",
+    #"cfe64_multi_attention_model2_distinctiveness+_lossN8_lambda05_sm" : "",
+    "cfe64_multi_attention_model2_distinctiveness+_lossN8_lambda01_sm" : "tb_logs/cfe64_multi_attention_model2_distinctiveness%2B_lossN8_lambda01_sm/version_4/checkpoints/epoch%3D38-step%3D5654.ckpt",
+    #"cfe64_multi_attention_model2_distinctiveness+_lossN8_lambda01" : "",
+    "cfe64_multi_attention_model2_distinctiveness+_lossN4_lambda1" : "tb_logs/cfe64_multi_attention_model2_distinctiveness%2B_lossN8_lambda1/version_0/checkpoints/epoch%3D44-step%3D6524.ckpt",
+    "cfe64_multi_attention_model2_distinctiveness+_lossN8_lambda1" : "tb_logs/cfe64_multi_attention_model2_distinctiveness%2B_lossN8_lambda1/version_0/checkpoints/epoch%3D44-step%3D6524.ckpt",
+    "cfe64_multi_attention_model2_distinctiveness+_lossN2_lambda05_sm" : "tb_logs/cfe64_multi_attention_model2_distinctiveness%2B_lossN2_lambda05_sm/version_5/checkpoints/epoch%3D27-step%3D4059.ckpt",
+    "cfe64_multi_attention_model2_distinctiveness+_lossN64_lambda1" : "tb_logs/cfe64_multi_attention_model2_distinctiveness%2B_lossN64_lambda1/version_0/checkpoints/epoch%3D40-step%3D5944.ckpt",
+    "cfe64_multi_attention_model2_distinctiveness+_lossN32_lambda1" : "tb_logs/cfe64_multi_attention_model2_distinctiveness%2B_lossN32_lambda1/version_0/checkpoints/epoch%3D40-step%3D5944.ckpt",
+    "cfe64_multi_attention_model2_distinctiveness+_lossN16_lambda01_sm" : "tb_logs/cfe64_multi_attention_model2_distinctiveness%2B_lossN16_lambda01_sm/version_2/checkpoints/epoch%3D39-step%3D5799.ckpt",
+    "cfe64_multi_attention_model2_distinctiveness+_loss" : "tb_logs/cfe64_multi_attention_model2_distinctiveness%2B_loss/version_0/checkpoints/epoch%3D41-step%3D6089.ckpt"
 }
 
 
