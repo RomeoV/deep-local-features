@@ -11,7 +11,10 @@ from lib.correspondence_datamodule import ResnetCorrespondenceExtractor, ResnetA
 from lib.tf_weight_loader import load_weights
 from lib.tf_weight_loader import mapping as default_mapping
 from pytorch_lightning.loggers import TensorBoardLogger
+from lib.repeatability_loss import RepeatabilityLoss
 from lib.loss import *
+
+REP_LOSS = False
 
 
 class SharedCorrespondenceEncoder(LightningModule):
@@ -171,6 +174,92 @@ class SharedCorrespondenceEncoder(LightningModule):
         return {'early': activation_transform['early'](activations["layer2"]),
                 'middle': activation_transform['middle'](activations["layer3"]),
                 'deep': activation_transform['deep'](activations["layer4"])}
+
+class SharedMultiAttentionLayer2(LightningModule):
+    def __init__(self, feature_encoder):
+        super().__init__()
+        self.feature_encoder = feature_encoder
+        if (REP_LOSS):
+            self.loss = RepeatabilityLoss()
+        else:
+            self.loss = DistinctivenessLoss()
+
+        self.attention = nn.Sequential(
+            nn.Conv2d(in_channels=self.feature_encoder.encoded_channels,
+                      out_channels=512, kernel_size=(1, 1)),  # bx2xWxH
+            nn.BatchNorm2d(512),
+            nn.ReLU(True),
+            nn.Conv2d(in_channels=512, \
+                      out_channels=1, kernel_size=(1, 1)),  # bx2xWxH
+            nn.Softplus(beta=1, threshold=20),
+        )
+
+    def softmax(self, ux):
+        if ux.shape[1] == 1:
+            x = F.softplus(ux)
+            # for sure in [0,1], much less plateaus than softmax
+            return x / (1 + x)
+        elif ux.shape[1] == 2:
+            return F.softmax(ux, dim=1)[:, 1:2]
+
+    def forward(self, x):
+        y = {}
+        y["early"] = self.attention(x["early"])
+        y["middle"] = self.attention(x["middle"])
+        y["deep"] = self.attention(x["deep"])
+        return y
+
+    def training_step(self, batch, batch_idx):
+        x1 = batch['image1']
+        x2 = batch["image2"]
+
+        with torch.no_grad():
+            x1_encoded = self.feature_encoder.forward(x1)
+            x2_encoded = self.feature_encoder.forward(x2)
+
+        # x1_encoded.requires_grad = False
+        # x2_encoded.requires_grad = False
+        y1 = self.forward(x1_encoded)
+        y2 = self.forward(x2_encoded)
+
+        loss = torch.tensor(np.array(
+            [0], dtype=np.float32), device='cuda' if torch.cuda.is_available() else "cpu")
+
+        for layer in x1_encoded.keys():
+            loss = loss + \
+                self.loss(x1_encoded[layer], x2_encoded[layer],
+                          y1[layer], y2[layer], batch)
+
+        self.log('train_loss', loss)
+        return loss
+
+    def validation_step(self, batch, batch_idx):
+        x1 = batch['image1']
+        x2 = batch["image2"]
+
+        with torch.no_grad():
+            x1_encoded = self.feature_encoder.forward(x1)
+            x2_encoded = self.feature_encoder.forward(x2)
+
+        # x1_encoded.requires_grad = False
+        # x2_encoded.requires_grad = False
+        y1 = self.forward(x1_encoded)
+        y2 = self.forward(x2_encoded)
+
+        loss = torch.tensor(np.array(
+            [0], dtype=np.float32), device='cuda' if torch.cuda.is_available() else "cpu")
+
+        for layer in x1_encoded.keys():
+            loss = loss + \
+                self.loss(x1_encoded[layer], x2_encoded[layer],
+                          y1[layer], y2[layer], batch)
+
+        self.log('validation_loss', loss)
+        return loss
+
+    def configure_optimizers(self):
+        optimizer = torch.optim.Adam(self.parameters(), lr=1e-4)
+        return optimizer
 
 
 if __name__ == "__main__":
