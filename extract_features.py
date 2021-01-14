@@ -43,10 +43,6 @@ parser.add_argument(
     help='attention model name'
 )
 parser.add_argument(
-    '--encoder_ckpt', type=str, default='correspondence_encoder_lr1e3',
-    help='path to encoder checkpoint'
-)
-parser.add_argument(
     '--attention_ckpt', type=str, default='cfe64_multi_attention_model2_distinctiveness+_lossN64_lambda1',
     help='path to attention checkpoint'
 )
@@ -140,25 +136,13 @@ if args.first_stride == 1:
 
 #num_upsampling_extraction += 1
 
-if args.load_from_folder:
-    encoder_ckpt = 'checkpoints/' + args.encoder_ckpt + '.ckpt'
-else:
-    encoder_ckpt = load_checkpoint.get_attention_ckpt(args.encoder_ckpt)
-
 exec('EncoderModule = autoencoder.' + args.encoder_model)
 
-if args.shared:
-    encoder = EncoderModule.load_from_checkpoint(encoder_ckpt,
-                                                 no_upsampling=no_upsampling,
-                                                 replace_stride_with_dilation=replace_stride_with_dilation,
-                                                 first_stride=args.first_stride,
-                                                 load_tf_weights=False).eval()
-else:
-    encoder = EncoderModule(no_upsampling=no_upsampling,
-                            replace_stride_with_dilation=replace_stride_with_dilation,
-                            first_stride=args.first_stride,
-                            load_tf_weights=False)
 
+encoder = EncoderModule(no_upsampling=no_upsampling,
+                        replace_stride_with_dilation=replace_stride_with_dilation,
+                        first_stride=args.first_stride,
+                        load_tf_weights=False).eval()
 if args.load_from_folder:
     attention_ckpt = 'checkpoints/' + args.attention_ckpt + '.ckpt'
 else:
