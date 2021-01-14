@@ -35,7 +35,6 @@ ATTENTION = {
 
     "cfe64_multi_attention_model2_distinctiveness+_lossN16_lambda01_lowmargin" : "tb_logs/cfe64_multi_attention_model2_distinctiveness%2B_lossN16_lambda01_lowmargin/version_0/checkpoints/epoch%3D24-step%3D3624.ckpt",
 
-
     "cfe64_multi_attention_model2_distinctiveness+_lossN8_lambda01_sm_SHARED" : "https://polybox.ethz.ch/remote.php/webdav/Shared/Deep%20Learning/tb_logs/cfe64_multi_attention_model2_distinctiveness%2B_lossN8_lambda01_sm/version_3/checkpoints/epoch%3D28-step%3D4204.ckpt", #also version 2
     "cfe64_multi_attention_model2_distinctiveness+_lossN8_lambda01_sm": "tb_logs/cfe64_multi_attention_model2_distinctiveness%2B_lossN8_lambda01_sm/version_4/checkpoints/epoch%3D38-step%3D5654.ckpt",##NOT SHARED
 
@@ -47,11 +46,15 @@ ATTENTION = {
     "cfe64_multi_attention_model2_distinctiveness+_lossN64_lambda1" : "tb_logs/cfe64_multi_attention_model2_distinctiveness%2B_lossN64_lambda1/version_0/checkpoints/epoch%3D40-step%3D5944.ckpt",
     "cfe64_multi_attention_model2_distinctiveness+_lossN32_lambda1" : "tb_logs/cfe64_multi_attention_model2_distinctiveness%2B_lossN32_lambda1/version_0/checkpoints/epoch%3D40-step%3D5944.ckpt",
     "cfe64_multi_attention_model2_distinctiveness+_lossN16_lambda01_sm" : "tb_logs/cfe64_multi_attention_model2_distinctiveness%2B_lossN16_lambda01_sm/version_2/checkpoints/epoch%3D39-step%3D5799.ckpt",
-    "cfe64_multi_attention_model2_distinctiveness+_loss" : "tb_logs/cfe64_multi_attention_model2_distinctiveness%2B_loss/version_0/checkpoints/epoch%3D41-step%3D6089.ckpt"
+    "cfe64_multi_attention_model2_distinctiveness+_loss" : "tb_logs/cfe64_multi_attention_model2_distinctiveness%2B_loss/version_0/checkpoints/epoch%3D41-step%3D6089.ckpt",
 
     # missing "cfe64_multi_attention_model2_distinctiveness+_lossN8_lambda05_sm" : "",
     # missing "cfe64_multi_attention_model2_distinctiveness+_lossN8_lambda01" : "",
     ##fix"cfe64_multi_attention_model2_distinctiveness+_lossN4_lambda1" : "tb_logs/cfe64_multi_attention_model2_distinctiveness%2B_lossN8_lambda1/version_0/checkpoints/epoch%3D44-step%3D6524.ckpt",
+
+    "correspondence_encoder": "tb_logs/correspondence_encoder/version_5/checkpoints/epoch%3D37-step%3D5509.ckpt",
+    "correspondence_encoder_lr1e3": "tb_logs/correspondence_encoder_lr1e3/version_0/checkpoints/epoch%3D44-step%3D6524.ckpt"
+
 }
 # names that end with
 
