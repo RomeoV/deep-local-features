@@ -33,7 +33,7 @@ class SharedCorrespondenceEncoder(LightningModule):
 
         self.stages = ('early', 'middle', 'deep')
 
-        self.pre_autoenc_channels = 1024
+        self.pre_autoenc_channels = 512
         self.input_channels = {
             'early': 512,
             'middle': 1024,
@@ -59,16 +59,16 @@ class SharedCorrespondenceEncoder(LightningModule):
 
         self.pre_encoding = {
             'early': nn.Sequential(
-                nn.Conv2d(in_channels=self.input_channels['early'], out_channels=self.input_channels['early'], kernel_size=(1,1)),
-                nn.Conv2d(in_channels=self.input_channels['early'], out_channels=self.pre_autoenc_channels, kernel_size=(1,1))
+                nn.Conv2d(in_channels=self.input_channels['early'], out_channels=self.pre_autoenc_channels, kernel_size=(1,1)),
+                nn.Conv2d(in_channels=self.pre_autoenc_channels, out_channels=self.pre_autoenc_channels, kernel_size=(1,1))
             ),
             'middle': nn.Sequential(
-                nn.Conv2d(in_channels=self.input_channels['middle'], out_channels=self.input_channels['middle'], kernel_size=(1,1)),
-                nn.Conv2d(in_channels=self.input_channels['middle'], out_channels=self.pre_autoenc_channels, kernel_size=(1,1))
+                nn.Conv2d(in_channels=self.input_channels['middle'], out_channels=self.pre_autoenc_channels, kernel_size=(1,1)),
+                nn.Conv2d(in_channels=self.pre_autoenc_channels, out_channels=self.pre_autoenc_channels, kernel_size=(2,2))
             ),
             'deep': nn.Sequential(
-                nn.Conv2d(in_channels=self.input_channels['deep'], out_channels=self.input_channels['deep'], kernel_size=(1,1)),
-                nn.Conv2d(in_channels=self.input_channels['deep'], out_channels=self.pre_autoenc_channels, kernel_size=(1,1))
+                nn.Conv2d(in_channels=self.input_channels['deep'], out_channels=self.pre_autoenc_channels, kernel_size=(1,1)),
+                nn.Conv2d(in_channels=self.pre_autoenc_channels, out_channels=self.pre_autoenc_channels, kernel_size=(2,2))
             )
         }
 
@@ -191,7 +191,6 @@ class SharedMultiAttentionLayer2(LightningModule):
             nn.ReLU(True),
             nn.Conv2d(in_channels=512, \
                       out_channels=1, kernel_size=(1, 1)),  # bx2xWxH
-            nn.Softplus(beta=1, threshold=20),
         )
 
     def softmax(self, ux):
@@ -204,9 +203,9 @@ class SharedMultiAttentionLayer2(LightningModule):
 
     def forward(self, x):
         y = {}
-        y["early"] = self.attention(x["early"])
-        y["middle"] = self.attention(x["middle"])
-        y["deep"] = self.attention(x["deep"])
+        y["early"] = self.softmax(self.attention(x["early"]))
+        y["middle"] = self.softmax(self.attention(x["middle"]))
+        y["deep"] = self.softmax(self.attention(x["deep"]))
         return y
 
     def training_step(self, batch, batch_idx):

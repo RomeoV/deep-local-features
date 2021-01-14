@@ -30,19 +30,30 @@ ATTENTION = {
     "cfe64_multi_attention_model_distinctiveness+_lossN32_l1": "tb_logs/cfe64_multi_attention_model_distinctiveness%2B_lossN32_l1/version_0/checkpoints/epoch%3D31-step%3D4639.ckpt",
     "multi_attention_model_distinctiveness_loss": "tb_logs/multi_attention_model_distinctiveness_loss/version_0/checkpoints/epoch%3D58-step%3D8554.ckpt",
 
-    "cfe64_multi_attention_model2_distinctiveness+_lossN16_lambda01_sm_lowmargin" : "tb_logs/cfe64_multi_attention_model2_distinctiveness%2B_lossN16_lambda01_sm_lowmargin/version_0/checkpoints/epoch%3D19-step%3D2899.ckpt",
+    ## something could be wrong with this
+    "cfe64_multi_attention_model2_distinctiveness+_lossN16_lambda01_sm_lowmargin_SHARED" : "tb_logs/cfe64_multi_attention_model2_distinctiveness%2B_lossN16_lambda01_sm_lowmargin/version_0/checkpoints/epoch%3D19-step%3D2899.ckpt",
+
     "cfe64_multi_attention_model2_distinctiveness+_lossN16_lambda01_lowmargin" : "tb_logs/cfe64_multi_attention_model2_distinctiveness%2B_lossN16_lambda01_lowmargin/version_0/checkpoints/epoch%3D24-step%3D3624.ckpt",
-    #"cfe64_multi_attention_model2_distinctiveness+_lossN8_lambda05_sm" : "",
-    "cfe64_multi_attention_model2_distinctiveness+_lossN8_lambda01_sm" : "tb_logs/cfe64_multi_attention_model2_distinctiveness%2B_lossN8_lambda01_sm/version_4/checkpoints/epoch%3D38-step%3D5654.ckpt",
-    #"cfe64_multi_attention_model2_distinctiveness+_lossN8_lambda01" : "",
-    "cfe64_multi_attention_model2_distinctiveness+_lossN4_lambda1" : "tb_logs/cfe64_multi_attention_model2_distinctiveness%2B_lossN8_lambda1/version_0/checkpoints/epoch%3D44-step%3D6524.ckpt",
+
+
+    "cfe64_multi_attention_model2_distinctiveness+_lossN8_lambda01_sm_SHARED" : "https://polybox.ethz.ch/remote.php/webdav/Shared/Deep%20Learning/tb_logs/cfe64_multi_attention_model2_distinctiveness%2B_lossN8_lambda01_sm/version_3/checkpoints/epoch%3D28-step%3D4204.ckpt", #also version 2
+    "cfe64_multi_attention_model2_distinctiveness+_lossN8_lambda01_sm": "tb_logs/cfe64_multi_attention_model2_distinctiveness%2B_lossN8_lambda01_sm/version_4/checkpoints/epoch%3D38-step%3D5654.ckpt",##NOT SHARED
+
     "cfe64_multi_attention_model2_distinctiveness+_lossN8_lambda1" : "tb_logs/cfe64_multi_attention_model2_distinctiveness%2B_lossN8_lambda1/version_0/checkpoints/epoch%3D44-step%3D6524.ckpt",
-    "cfe64_multi_attention_model2_distinctiveness+_lossN2_lambda05_sm" : "tb_logs/cfe64_multi_attention_model2_distinctiveness%2B_lossN2_lambda05_sm/version_5/checkpoints/epoch%3D27-step%3D4059.ckpt",
+
+    "cfe64_multi_attention_model2_distinctiveness+_lossN2_lambda05_sm_SHARED" : "tb_logs/cfe64_multi_attention_model2_distinctiveness%2B_lossN2_lambda05_sm/version_5/checkpoints/epoch%3D27-step%3D4059.ckpt", ##SHARED only5
+    "cfe64_multi_attention_model2_distinctiveness+_lossN2_lambda05_sm" : "tb_logs/cfe64_multi_attention_model2_distinctiveness%2B_lossN2_lambda05_sm/version_4/checkpoints/epoch%3D43-step%3D6379.ckpt",
+
     "cfe64_multi_attention_model2_distinctiveness+_lossN64_lambda1" : "tb_logs/cfe64_multi_attention_model2_distinctiveness%2B_lossN64_lambda1/version_0/checkpoints/epoch%3D40-step%3D5944.ckpt",
     "cfe64_multi_attention_model2_distinctiveness+_lossN32_lambda1" : "tb_logs/cfe64_multi_attention_model2_distinctiveness%2B_lossN32_lambda1/version_0/checkpoints/epoch%3D40-step%3D5944.ckpt",
     "cfe64_multi_attention_model2_distinctiveness+_lossN16_lambda01_sm" : "tb_logs/cfe64_multi_attention_model2_distinctiveness%2B_lossN16_lambda01_sm/version_2/checkpoints/epoch%3D39-step%3D5799.ckpt",
     "cfe64_multi_attention_model2_distinctiveness+_loss" : "tb_logs/cfe64_multi_attention_model2_distinctiveness%2B_loss/version_0/checkpoints/epoch%3D41-step%3D6089.ckpt"
+
+    # missing "cfe64_multi_attention_model2_distinctiveness+_lossN8_lambda05_sm" : "",
+    # missing "cfe64_multi_attention_model2_distinctiveness+_lossN8_lambda01" : "",
+    ##fix"cfe64_multi_attention_model2_distinctiveness+_lossN4_lambda1" : "tb_logs/cfe64_multi_attention_model2_distinctiveness%2B_lossN8_lambda1/version_0/checkpoints/epoch%3D44-step%3D6524.ckpt",
 }
+# names that end with
 
 
 def get_encoder_ckpt(name):
