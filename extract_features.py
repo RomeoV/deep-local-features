@@ -35,7 +35,7 @@ device = torch.device("cuda:0" if use_cuda else "cpu")
 parser = argparse.ArgumentParser(description='Feature extraction script')
 
 parser.add_argument(
-    '--encoder_model', type=str, default='auto',
+    '--encoder_model', type=str, default='FeatureEncoder64Up',
     help='encoder model name'
 )
 parser.add_argument(
@@ -71,6 +71,9 @@ parser.add_argument(
 )
 parser.add_argument(
     '--smart_name', action='store_true', default=False, help='override args.output_extension with smart name and write to checkpoints/extensions.txt'
+)
+parser.add_argument(
+    '--shared', action='store_true', default=False, help='encoder weights are contained in the attention weights'
 )
 parser.add_argument('--thresh', type=float, default=0.2,
                     help="Threshold for detection")
@@ -135,21 +138,26 @@ else:
 if args.first_stride == 1:
     num_upsampling_extraction -= 1
 
-num_upsampling_extraction += 1
+#num_upsampling_extraction += 1
 
 if args.load_from_folder:
     encoder_ckpt = 'checkpoints/' + args.encoder_ckpt + '.ckpt'
 else:
-    encoder_ckpt = load_checkpoint.get_encoder_ckpt(args.encoder_ckpt)
-if args.encoder_model == "auto":
-    encoder = autoencoder.FeatureEncoder64Up.load_from_checkpoint(encoder_ckpt).requires_grad_(False)
-else:
-    exec('EncoderModule = autoencoder.' + args.encoder_model)
+    encoder_ckpt = load_checkpoint.get_attention_ckpt(args.encoder_ckpt)
+
+exec('EncoderModule = autoencoder.' + args.encoder_model)
+
+if args.shared:
     encoder = EncoderModule.load_from_checkpoint(encoder_ckpt,
                                                  no_upsampling=no_upsampling,
                                                  replace_stride_with_dilation=replace_stride_with_dilation,
                                                  first_stride=args.first_stride,
                                                  load_tf_weights=False).eval()
+else:
+    encoder = EncoderModule(no_upsampling=no_upsampling,
+                            replace_stride_with_dilation=replace_stride_with_dilation,
+                            first_stride=args.first_stride,
+                            load_tf_weights=False)
 
 if args.load_from_folder:
     attention_ckpt = 'checkpoints/' + args.attention_ckpt + '.ckpt'
