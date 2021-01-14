@@ -13,7 +13,12 @@ ENCODER = {
 ATTENTION = {
     "cfe64_multi_attention": "tb_logs/cfe64_multi_attention_model_distinctiveness%2B_loss/version_2/checkpoints/epoch%3D4-step%3D582.ckpt",
     "cfe64_multi_attention_v2": "tb_logs/cfe64_multi_attention_model2_distinctiveness%2B_loss/version_0/checkpoints/epoch%3D24-step%3D3624.ckpt",
-    "multiattention_dest_N32": "tb_logs/cfe64_multi_attention_model_distinctiveness%2B_lossN32_l1/version_0/checkpoints/epoch%3D31-step%3D4639.ckpt"
+    "multiattention_dest_N32": "tb_logs/cfe64_multi_attention_model_distinctiveness%2B_lossN32_l1/version_0/checkpoints/epoch%3D31-step%3D4639.ckpt",
+    "multiattention2_n64": "tb_logs/cfe64_multi_attention_model2_distinctiveness%2B_lossN64_lambda1/version_0/checkpoints/epoch%3D26-step%3D3914.ckpt",
+    "multiattention2_n8": "tb_logs/cfe64_multi_attention_model2_distinctiveness%2B_lossN8_lambda1/version_0/checkpoints/epoch%3D31-step%3D4639.ckpt",
+    "multiattention2_d2net": "tb_logs/cfe64_multi_attention_model2_d2netloss/version_0/checkpoints/epoch%3D35-step%3D5219.ckpt",
+    "multiattention1_n8": "tb_logs/cfe64_multi_attention_model_distinctiveness%2B_lossN8_l1/version_0/checkpoints/epoch%3D36-step%3D5364.ckpt",
+    "multiattention1_n32": "tb_logs/cfe64_multi_attention_model_distinctiveness%2B_lossN32_l1/version_0/checkpoints/epoch%3D31-step%3D4639.ckpt"
 }
 
 
