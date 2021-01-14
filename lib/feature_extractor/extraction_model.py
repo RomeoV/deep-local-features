@@ -46,10 +46,15 @@ class ExtractionModel(nn.Module):
 
         detections = None
         displacements_input = None
+        d2_net_map = []
         if self._use_d2net_detection:
             dense_features = [early, middle, deep]
             displacements_input = dense_features
-            detections = [self.detection(df) for df in dense_features]
+            detections = []
+            for df in dense_features:
+                d, m = self.detection(df)
+                detections.append(d)
+                d2_net_map.append(m)
         else:
             detections = self.detection(dense_features)
             # for i,d in enumerate(detections):
@@ -148,7 +153,13 @@ class ExtractionModel(nn.Module):
         keypoints = keypoints.detach()
         keypoints = keypoints[:, [1, 0]]  # To work with cv indexing
 
-        return keypoints, descriptors.detach(), scores.detach(), [d.detach().numpy()[0, 0, :, :] for d in detections]
+        if self._use_d2net_detection:
+            d2_net_map = [d.detach().cpu().numpy()[0, :, :]
+                          for d in d2_net_map]
+            return keypoints, descriptors.detach(), scores.detach(
+            ), d2_net_map
+        else:
+            return keypoints, descriptors.detach(), scores.detach(), [d.detach().numpy()[0, 0, :, :] for d in detections]
 
 
 class DetectionModule(nn.Module):
