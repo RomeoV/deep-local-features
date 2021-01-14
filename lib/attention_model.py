@@ -200,6 +200,7 @@ class MultiAttentionLayer(LightningModule):
 
         # x1_encoded.requires_grad = False
         # x2_encoded.requires_grad = False
+        
         y1 = self.forward(x1_encoded)
         y2 = self.forward(x2_encoded)
 
@@ -221,6 +222,7 @@ class MultiAttentionLayer(LightningModule):
 
         # x1_encoded.requires_grad = False
         # x2_encoded.requires_grad = False
+        
         y1 = self.forward(x1_encoded)
         y2 = self.forward(x2_encoded)
 
@@ -254,7 +256,6 @@ class MultiAttentionLayer2(LightningModule):
             nn.ReLU(True),
             nn.Conv2d(in_channels=512, \
                     out_channels=1, kernel_size=(1,1)), #bx2xWxH
-            nn.Softplus(beta=1, threshold=20),
         )
         self.middle_attentions = nn.Sequential(
             nn.Conv2d(in_channels=self.feature_encoder.encoded_channels, \
@@ -263,7 +264,6 @@ class MultiAttentionLayer2(LightningModule):
             nn.ReLU(True),
             nn.Conv2d(in_channels=512, \
                     out_channels=1, kernel_size=(1,1)), #bx2xWxH
-            nn.Softplus(beta=1, threshold=20),
         )
         self.deep_attentions = nn.Sequential(
             nn.Conv2d(in_channels=self.feature_encoder.encoded_channels, \
@@ -272,7 +272,6 @@ class MultiAttentionLayer2(LightningModule):
             nn.ReLU(True),
             nn.Conv2d(in_channels=512, \
                     out_channels=1, kernel_size=(1,1)), #bx2xWxH
-            nn.Softplus(beta=1, threshold=20),
         )
 
     def softmax(self, ux):
@@ -284,9 +283,9 @@ class MultiAttentionLayer2(LightningModule):
 
     def forward(self, x):
         y = {}
-        y["early"] = self.early_attentions(x["early"])
-        y["middle"] = self.middle_attentions(x["middle"])
-        y["deep"] = self.deep_attentions(x["deep"])
+        y["early"] = self.softmax(self.early_attentions(x["early"]))
+        y["middle"] = self.softmax(self.middle_attentions(x["middle"]))
+        y["deep"] = self.softmax(self.deep_attentions(x["deep"]))
         return y
 
     def training_step(self, batch, batch_idx):
@@ -299,6 +298,7 @@ class MultiAttentionLayer2(LightningModule):
 
         # x1_encoded.requires_grad = False
         # x2_encoded.requires_grad = False
+    
         y1 = self.forward(x1_encoded)
         y2 = self.forward(x2_encoded)
 
@@ -320,6 +320,7 @@ class MultiAttentionLayer2(LightningModule):
 
         # x1_encoded.requires_grad = False
         # x2_encoded.requires_grad = False
+        
         y1 = self.forward(x1_encoded)
         y2 = self.forward(x2_encoded)
 
