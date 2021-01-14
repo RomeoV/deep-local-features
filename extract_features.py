@@ -82,6 +82,9 @@ parser.add_argument(
     help='path to a file containing a list of images to process'
 )
 
+parser.add_argument('--sum_descriptors', action='store_true',
+                    default=False, help="Wether or not to sum descriptors of different scales")
+
 parser.add_argument(
     '--preprocessing', type=str, default='torch',
     help='image preprocessing (caffe or torch)')
@@ -100,7 +103,6 @@ parser.add_argument(
     help='output file type (npz or mat)'
 )
 
-parser.add_argument("--sum_descriptors", action='store_true', default=False, help="Wether or not to sum descriptors of different scales")
 
 args = parser.parse_args()
 
@@ -112,6 +114,7 @@ if args.smart_name:
         name += "_SUM"
     if args.scale:
         name += "_SCALE"
+    args.output_extension = name
     print('Extension: ' + name)
 
 if args.replace_strides:
@@ -251,7 +254,7 @@ for line in tqdm(lines, total=len(lines)):
     else:
         raise ValueError('Unknown output type.')
 
-args.output_extension = name
+
 f = open("checkpoints/extensions.txt", "a")
 f.write(args.output_extension + '\n')
 f.close()
