@@ -35,11 +35,11 @@ device = torch.device("cuda:0" if use_cuda else "cpu")
 parser = argparse.ArgumentParser(description='Feature extraction script')
 
 parser.add_argument(
-    '--encoder_model', type=str, default='FeatureEncoder64Up',
+    '--encoder_model', type=str, default='auto',
     help='encoder model name'
 )
 parser.add_argument(
-    '--attention_model', type=str, default='MultiAttentionLayer2',
+    '--attention_model', type=str, default='auto',
     help='attention model name'
 )
 parser.add_argument(
@@ -68,9 +68,6 @@ parser.add_argument(
 )
 parser.add_argument(
     '--load_from_folder', action='store_true', default=False, help='load checkpoints from ./checkpoints/'
-)
-parser.add_argument(
-    '--use_cor_model', action='store_true', default=False, help='use correspondence model from train_shared_fe64'
 )
 parser.add_argument(
     '--smart_name', action='store_true', default=False, help='override args.output_extension with smart name and write to checkpoints/extensions.txt'
@@ -112,12 +109,16 @@ args = parser.parse_args()
 print(args)
 
 if args.smart_name:
-    name = "." + args.attention_ckpt + " " + args.encoder_ckpt + "_"
-    if args.use_cor_model: name+= "CORMODEL"
+    name = "." + args.attention_ckpt + "_" + args.encoder_ckpt + "_"
+    if args.encoder_model == "auto": name+= "CORMODEL"
+    name += "_NOMAXF"
+    if args.scale:
+        name += "_SCALE"
     args.output_extension = name
     f = open("checkpoints/extensions.txt", "a")
     f.write(name + '\n')
     f.close()
+    print('Extension: ' + name)
 
 if args.replace_strides:
     # (True, True, True) # Default: (False, False, False)
@@ -139,21 +140,32 @@ if args.load_from_folder:
 else:
     encoder_ckpt = load_checkpoint.get_encoder_ckpt(args.encoder_ckpt)
 exec('EncoderModule = autoencoder.' + args.encoder_model)
-if not args.use_cor_model:
+if args.encoder_model == "auto":
+    encoder = CorrespondenceEncoder.load_from_checkpoint(encoder_ckpt).requires_grad_(False)
+else:
     encoder = EncoderModule.load_from_checkpoint(encoder_ckpt,
                                                  no_upsampling=no_upsampling,
                                                  replace_stride_with_dilation=replace_stride_with_dilation,
                                                  first_stride=args.first_stride,
                                                  load_tf_weights=False).eval()
-else:
-    encoder = CorrespondenceEncoder.load_from_checkpoint(encoder_ckpt).requires_grad_(False)
-
-# encoder = autoencoder.FeatureEncoder1.load_from_checkpoint(args.encoder_ckpt, load_tf_weights=False).eval()
 
 if args.load_from_folder:
     attention_ckpt = 'checkpoints/' + args.attention_ckpt + '.ckpt'
 else:
     attention_ckpt = load_checkpoint.get_attention_ckpt(args.attention_ckpt)
+
+if args.attention_model == 'auto':
+    if 'multi_attention_model2' in args.attention_ckpt:
+        args.attention_model = 'MultiAttentionLayer2'
+    elif 'multi_attention_model' in args.attention_ckpt:
+        args.attention_model = 'MultiAttentionLayer'
+    elif 'attention_model' in args.attention_ckpt:
+        args.attention_model = 'AttentionLayer2'
+    else:
+        raise Exception("Can't find matching attention model. Set --attention_model manually")
+    print ("USING ATTENTION MODEL: " + args.attention_model)
+
+
 exec('AttentionModule = attention_model.' + args.attention_model)
 attention = AttentionModule.load_from_checkpoint(
     attention_ckpt, feature_encoder=encoder).eval()
@@ -161,7 +173,7 @@ attention = AttentionModule.load_from_checkpoint(
 
 extraction_model = em.ExtractionModel(
     attention,
-    max_features=512,
+    max_features=None,
     use_d2net_detection=args.d2net_localization,
     num_upsampling=num_upsampling_extraction,
     thresh=args.thresh,
