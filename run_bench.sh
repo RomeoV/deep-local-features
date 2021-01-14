@@ -1,5 +1,3 @@
-python extract_features.py --smart_name --attention_ckpt 
-
 python extract_features.py --smart_name --attention_ckpt cfe64_multi_attention_model2_d2netloss
 
 python extract_features.py --smart_name --attention_ckpt cfe64_multi_attention_model2_d2netloss_backprop

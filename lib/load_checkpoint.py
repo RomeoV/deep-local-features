@@ -35,7 +35,7 @@ ATTENTION = {
 
     "cfe64_multi_attention_model2_distinctiveness+_lossN16_lambda01_lowmargin" : "tb_logs/cfe64_multi_attention_model2_distinctiveness%2B_lossN16_lambda01_lowmargin/version_0/checkpoints/epoch%3D24-step%3D3624.ckpt",
 
-    "cfe64_multi_attention_model2_distinctiveness+_lossN8_lambda01_sm_SHARED" : "https://polybox.ethz.ch/remote.php/webdav/Shared/Deep%20Learning/tb_logs/cfe64_multi_attention_model2_distinctiveness%2B_lossN8_lambda01_sm/version_3/checkpoints/epoch%3D28-step%3D4204.ckpt", #also version 2
+    "cfe64_multi_attention_model2_distinctiveness+_lossN8_lambda01_sm_SHARED" : "tb_logs/cfe64_multi_attention_model2_distinctiveness%2B_lossN8_lambda01_sm/version_3/checkpoints/epoch%3D28-step%3D4204.ckpt", #also version 2
     "cfe64_multi_attention_model2_distinctiveness+_lossN8_lambda01_sm": "tb_logs/cfe64_multi_attention_model2_distinctiveness%2B_lossN8_lambda01_sm/version_4/checkpoints/epoch%3D38-step%3D5654.ckpt",##NOT SHARED
 
     "cfe64_multi_attention_model2_distinctiveness+_lossN8_lambda1" : "tb_logs/cfe64_multi_attention_model2_distinctiveness%2B_lossN8_lambda1/version_0/checkpoints/epoch%3D44-step%3D6524.ckpt",
