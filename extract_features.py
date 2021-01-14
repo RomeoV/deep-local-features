@@ -21,6 +21,7 @@ from externals.d2net.lib.utils import preprocess_image
 from lib.feature_extractor import extraction_model as em
 from lib import autoencoder, attention_model
 from lib import load_checkpoint
+from lib.train_shared_fe64 import CorrespondenceEncoder
 #from pqdm.threads import pqdm
 import os
 # from externals.d2net.lib import localization, utils
@@ -34,19 +35,19 @@ device = torch.device("cuda:0" if use_cuda else "cpu")
 parser = argparse.ArgumentParser(description='Feature extraction script')
 
 parser.add_argument(
-    '--encoder_model', type=str, default='FeatureEncoder64Up',
+    '--encoder_model', type=str, default='auto',
     help='encoder model name'
 )
 parser.add_argument(
-    '--attention_model', type=str, default='MultiAttentionLayer',
+    '--attention_model', type=str, default='auto',
     help='attention model name'
 )
 parser.add_argument(
-    '--encoder_ckpt', type=str, default='correspondence_encoder',
+    '--encoder_ckpt', type=str, default='correspondence_encoder_lr1e3',
     help='path to encoder checkpoint'
 )
 parser.add_argument(
-    '--attention_ckpt', type=str, default='cfe64_multi_attention',
+    '--attention_ckpt', type=str, default='cfe64_multi_attention_model2_distinctiveness+_lossN64_lambda1',
     help='path to attention checkpoint'
 )
 parser.add_argument(
@@ -58,6 +59,18 @@ parser.add_argument(
 )
 parser.add_argument(
     '--nogpu', action='store_true', default=False, help="Whether or not to use gpu"
+)
+parser.add_argument(
+    '--scale', action='store_true', default=False, help="Preprocess and scale large images"
+)
+parser.add_argument(
+    '--append', action='store_true', default=False, help="Append ones to descriptors"
+)
+parser.add_argument(
+    '--load_from_folder', action='store_true', default=False, help='load checkpoints from ./checkpoints/'
+)
+parser.add_argument(
+    '--smart_name', action='store_true', default=False, help='override args.output_extension with smart name and write to checkpoints/extensions.txt'
 )
 parser.add_argument('--thresh', type=float, default=0.2,
                     help="Threshold for detection")
@@ -95,6 +108,18 @@ args = parser.parse_args()
 
 print(args)
 
+if args.smart_name:
+    name = "." + args.attention_ckpt + "_" + args.encoder_ckpt + "_"
+    if args.encoder_model == "auto": name+= "CORMODEL"
+    name += "_NOMAXF"
+    if args.scale:
+        name += "_SCALE"
+    args.output_extension = name
+    f = open("checkpoints/extensions.txt", "a")
+    f.write(name + '\n')
+    f.close()
+    print('Extension: ' + name)
+
 if args.replace_strides:
     # (True, True, True) # Default: (False, False, False)
     replace_stride_with_dilation = (True, True, True)
@@ -107,17 +132,40 @@ else:
 
 if args.first_stride == 1:
     num_upsampling_extraction -= 1
-encoder_ckpt = load_checkpoint.get_encoder_ckpt(args.encoder_ckpt)
+
+num_upsampling_extraction += 1
+
+if args.load_from_folder:
+    encoder_ckpt = 'checkpoints/' + args.encoder_ckpt + '.ckpt'
+else:
+    encoder_ckpt = load_checkpoint.get_encoder_ckpt(args.encoder_ckpt)
 exec('EncoderModule = autoencoder.' + args.encoder_model)
-encoder = EncoderModule.load_from_checkpoint(encoder_ckpt,
-                                             no_upsampling=no_upsampling,
-                                             replace_stride_with_dilation=replace_stride_with_dilation,
-                                             first_stride=args.first_stride,
-                                             load_tf_weights=False).eval()
+if args.encoder_model == "auto":
+    encoder = CorrespondenceEncoder.load_from_checkpoint(encoder_ckpt).requires_grad_(False)
+else:
+    encoder = EncoderModule.load_from_checkpoint(encoder_ckpt,
+                                                 no_upsampling=no_upsampling,
+                                                 replace_stride_with_dilation=replace_stride_with_dilation,
+                                                 first_stride=args.first_stride,
+                                                 load_tf_weights=False).eval()
 
-# encoder = autoencoder.FeatureEncoder1.load_from_checkpoint(args.encoder_ckpt, load_tf_weights=False).eval()
+if args.load_from_folder:
+    attention_ckpt = 'checkpoints/' + args.attention_ckpt + '.ckpt'
+else:
+    attention_ckpt = load_checkpoint.get_attention_ckpt(args.attention_ckpt)
 
-attention_ckpt = load_checkpoint.get_attention_ckpt(args.attention_ckpt)
+if args.attention_model == 'auto':
+    if 'multi_attention_model2' in args.attention_ckpt:
+        args.attention_model = 'MultiAttentionLayer2'
+    elif 'multi_attention_model' in args.attention_ckpt:
+        args.attention_model = 'MultiAttentionLayer'
+    elif 'attention_model' in args.attention_ckpt:
+        args.attention_model = 'AttentionLayer2'
+    else:
+        raise Exception("Can't find matching attention model. Set --attention_model manually")
+    print ("USING ATTENTION MODEL: " + args.attention_model)
+
+
 exec('AttentionModule = attention_model.' + args.attention_model)
 attention = AttentionModule.load_from_checkpoint(
     attention_ckpt, feature_encoder=encoder).eval()
@@ -125,7 +173,7 @@ attention = AttentionModule.load_from_checkpoint(
 
 extraction_model = em.ExtractionModel(
     attention,
-    max_features=512,
+    max_features=None,
     use_d2net_detection=args.d2net_localization,
     num_upsampling=num_upsampling_extraction,
     thresh=args.thresh,
@@ -154,25 +202,25 @@ for line in tqdm(lines, total=len(lines)):
 
     # TODO: switch to PIL.Image due to deprecation of scipy.misc.imresize.
     resized_image = image
-    # if max(resized_image.shape) > args.max_edge:
-    #     resized_image = scipy.misc.imresize(
-    #         resized_image,
-    #         args.max_edge / max(resized_image.shape)
-    #     ).astype('float')
-    # if sum(resized_image.shape[: 2]) > args.max_sum_edges:
-    #     resized_image = scipy.misc.imresize(
-    #         resized_image,
-    #         args.max_sum_edges / sum(resized_image.shape[: 2])
-    #     ).astype('float')
-    #
-    # fact_i = image.shape[0] / resized_image.shape[0]
-    # fact_j = image.shape[1] / resized_image.shape[1]
+    if args.scale:
+        if max(resized_image.shape) > args.max_edge:
+            resized_image = scipy.misc.imresize(
+                resized_image,
+                args.max_edge / max(resized_image.shape)
+            ).astype('float')
+        if sum(resized_image.shape[: 2]) > args.max_sum_edges:
+            resized_image = scipy.misc.imresize(
+                resized_image,
+                args.max_sum_edges / sum(resized_image.shape[: 2])
+            ).astype('float')
+
+        fact_i = image.shape[0] / resized_image.shape[0]
+        fact_j = image.shape[1] / resized_image.shape[1]
 
     input_image = preprocess_image(
         resized_image,
         preprocessing=args.preprocessing
     )
-    input_image = resized_image
     with torch.no_grad():
         im = torch.tensor(
             input_image[np.newaxis, :, :, :].astype(np.float32))
@@ -183,14 +231,16 @@ for line in tqdm(lines, total=len(lines)):
         keypoints, descriptors, scores, _ = extraction_model(im)
 
     # # Input image coordinates
-    # keypoints[:, 0] *= fact_i
-    # keypoints[:, 1] *= fact_j
+    if args.scale:
+        keypoints[:, 0] *= fact_i
+        keypoints[:, 1] *= fact_j
     # i, j -> u, v
     # TODO Find out what the following line is for
-    keypoints = torch.cat([
-        keypoints,
-        torch.ones([keypoints.size(0), 1]),  # * 1 / scale,
-    ], dim=1)
+    if args.append:
+        keypoints = torch.cat([
+            keypoints,
+            torch.ones([keypoints.size(0), 1]),  # * 1 / scale,
+        ], dim=1)
 
     if args.output_type == 'npz':
         with open(path + args.output_extension, 'wb') as output_file:
