@@ -139,10 +139,11 @@ if args.load_from_folder:
     encoder_ckpt = 'checkpoints/' + args.encoder_ckpt + '.ckpt'
 else:
     encoder_ckpt = load_checkpoint.get_encoder_ckpt(args.encoder_ckpt)
-exec('EncoderModule = autoencoder.' + args.encoder_model)
+
 if args.encoder_model == "auto":
     encoder = CorrespondenceEncoder.load_from_checkpoint(encoder_ckpt).requires_grad_(False)
 else:
+    exec('EncoderModule = autoencoder.' + args.encoder_model)
     encoder = EncoderModule.load_from_checkpoint(encoder_ckpt,
                                                  no_upsampling=no_upsampling,
                                                  replace_stride_with_dilation=replace_stride_with_dilation,

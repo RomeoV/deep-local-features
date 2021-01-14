@@ -8,6 +8,31 @@ conda activate DL
 conda install --file requirements.txt
 ```
 
+### Load Model & Evaluate with HPatches
+First go to *hpatches_sequences* and run
+```
+sh download.sh
+sh download_cache.sh
+```
+to download the HPatches dataset.
+
+To extract keypoints on the dataset run from the project root folder
+```
+python extract_features.py --nouse_nms --attention_ckpt cfe64_multi_attention_model2_d2netloss
+```
+The results will be saved with the extension **.our-model**. In order to use another extension use `--output_extension .some-extension` or use `--smart_name` in order to generate an extension based on the used model and parameters.
+
+Other useful parameters: 
+* `--nogpu` if you don't have a GPU 
+* `--encoder_ckpt correspondence_encoder_lr1e3` to chose another encoder checkpoint
+By default, checkpoints are automatically downloaded from Polybox, this, however, requires authentication. As alternative, you can load from a local file as follows: 
+* `--load_from_folder` The checkpoint must be in *checkpoints/checkpoint_name.ckpt* as set by --attention_ckpt
+
+##### Evaluate
+Run *HPatches-Benchmark.ipynb* in *hpatches_sequence*. Add the used extensions to methods.
+
+### Available Checkpoints
+
 ### Run your .py files in lib
 go to the root directory of the repo
 ```
