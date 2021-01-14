@@ -344,7 +344,7 @@ class PeakyLoss (nn.Module):
         return (self.forward_one(sali1) + self.forward_one(sali2)) /2
 
 class DistinctivenessLoss(nn.Module):
-    def __init__(self, margin=1, safe_radius=4, scaling_steps=3, N=16):
+    def __init__(self, margin=1, safe_radius=4, scaling_steps=3, N=32):
         super().__init__()
         self.margin = margin
         self.safe_radius = safe_radius
@@ -359,7 +359,7 @@ class DistinctivenessLoss(nn.Module):
         self.preproc = nn.AvgPool2d(3, stride=1, padding=1)
         self.maxpool = nn.MaxPool2d(N+1, stride=1, padding=N//2)
         self.avgpool = nn.AvgPool2d(N+1, stride=1, padding=N//2)
-        self.lambda_peaky = 0.7
+        self.lambda_peaky = 0.2
         self.plot = False
         self.m = nn.ReLU(True)
     
