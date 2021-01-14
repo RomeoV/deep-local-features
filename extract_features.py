@@ -68,10 +68,7 @@ parser.add_argument(
 parser.add_argument(
     '--smart_name', action='store_true', default=False, help='override args.output_extension with smart name and write to checkpoints/extensions.txt'
 )
-parser.add_argument(
-    '--shared', action='store_true', default=False, help='encoder weights are contained in the attention weights'
-)
-parser.add_argument('--thresh', type=float, default=0.2,
+parser.add_argument('--thresh', type=float, default=0.3,
                     help="Threshold for detection")
 parser.add_argument('--replace_strides', action='store_true', default=False,
                     help="Whether or not to replace strides with dilated convolution")
@@ -110,15 +107,11 @@ args = parser.parse_args()
 print(args)
 
 if args.smart_name:
-    name = "." + args.attention_ckpt + "_" + args.encoder_ckpt + "_"
-    if args.encoder_model == "auto": name+= "CORMODEL"
-    name += "_NOMAXF"
+    name = "." + args.attention_ckpt
+    if args.sum_descriptors:
+        name += "_SUM"
     if args.scale:
         name += "_SCALE"
-    args.output_extension = name
-    f = open("checkpoints/extensions.txt", "a")
-    f.write(name + '\n')
-    f.close()
     print('Extension: ' + name)
 
 if args.replace_strides:
@@ -258,6 +251,11 @@ for line in tqdm(lines, total=len(lines)):
     else:
         raise ValueError('Unknown output type.')
 
+args.output_extension = name
+f = open("checkpoints/extensions.txt", "a")
+f.write(args.output_extension + '\n')
+f.close()
+print('DONE: Extension: ' + args.output_extension)
     #del keypoints, descriptors, scores, input_image, resized_image, image, im
     #if not args.nogpu:
     #    torch.cuda.empty_cache()
