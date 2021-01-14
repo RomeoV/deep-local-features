@@ -74,8 +74,8 @@ parser.add_argument('--replace_strides', action='store_true', default=False,
                     help="Whether or not to replace strides with dilated convolution")
 parser.add_argument('--first_stride', type=int, default=1,
                     help="Replace the first stride in the network (this is not affected by replace strides)")
-parser.add_argument('--nouse_nms', action='store_true',
-                    default=False, help="Disable NMS")
+parser.add_argument('--nouse_nms', action='store_false',
+                    default=True, help="Disable NMS")
 
 parser.add_argument(
     '--image_list_file', type=str, default='hpatches_sequences/image_list_hpatches_sequences.txt',
