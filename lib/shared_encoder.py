@@ -183,7 +183,7 @@ class SharedMultiAttentionLayer2(LightningModule):
             self.loss = RepeatabilityLoss()
         else:
             self.loss = DistinctivenessLoss()
-
+        self.stages = ('early', 'middle', 'deep')
         self.attention = nn.Sequential(
             nn.Conv2d(in_channels=self.feature_encoder.encoded_channels,
                       out_channels=512, kernel_size=(1, 1)),  # bx2xWxH
@@ -210,62 +210,83 @@ class SharedMultiAttentionLayer2(LightningModule):
         return y
 
     def training_step(self, batch, batch_idx):
-        x1 = batch['image1']
-        x2 = batch["image2"]
+        x1 = self.feature_encoder.get_resnet_layers(batch["image1"])
+        x2 = self.feature_encoder.get_resnet_layers(batch["image2"])
 
-        with torch.no_grad():
-            x1_encoded = self.feature_encoder.forward(x1)
-            x2_encoded = self.feature_encoder.forward(x2)
+        z1 = {}
+        x_hat1 = {}
+        x_pre1 = {}
+        z2 = {}
+        x_hat2 = {}
+        x_pre2 = {}
+        for s in self.stages:
+            x_pre1[s] = self.feature_encoder.pre_encoding[s](x1[s])
+            z1[s] = self.feature_encoder.encoder(x_pre1[s])
+            x_hat1[s] = self.feature_encoder.decoder(z1[s])
 
-        # x1_encoded.requires_grad = False
-        # x2_encoded.requires_grad = False
-        y1 = self.forward(x1_encoded)
-        y2 = self.forward(x2_encoded)
+            x_pre2[s] = self.feature_encoder.pre_encoding[s](x2[s])
+            z2[s] = self.feature_encoder.encoder(x_pre2[s])
+            x_hat2[s] = self.feature_encoder.decoder(z2[s])
 
-        loss = torch.tensor(np.array(
-            [0], dtype=np.float32), device='cuda' if torch.cuda.is_available() else "cpu")
+        loss = sum((F.mse_loss(x_pre1[s], x_hat1[s]) + F.mse_loss(x_pre2[s], x_hat2[s]) + self.feature_encoder.cfactor * self.feature_encoder.correspondence_loss(z1[s],z2[s], batch)) for s in x1.keys())
+    
+        y1 = self.forward(z1)
+        y2 = self.forward(z2)
 
-        for layer in x1_encoded.keys():
-            loss = loss + \
-                self.loss(x1_encoded[layer], x2_encoded[layer],
-                          y1[layer], y2[layer], batch)
-
+        for layer in x1.keys():
+            loss = loss +  self.loss(z1[layer], z2[layer], y1[layer], y2[layer], batch)
+        
         self.log('train_loss', loss)
         return loss
 
     def validation_step(self, batch, batch_idx):
-        x1 = batch['image1']
-        x2 = batch["image2"]
+        x1 = self.feature_encoder.get_resnet_layers(batch["image1"])
+        x2 = self.feature_encoder.get_resnet_layers(batch["image2"])
 
-        with torch.no_grad():
-            x1_encoded = self.feature_encoder.forward(x1)
-            x2_encoded = self.feature_encoder.forward(x2)
+        z1 = {}
+        x_hat1 = {}
+        x_pre1 = {}
+        z2 = {}
+        x_hat2 = {}
+        x_pre2 = {}
+        for s in self.stages:
+            x_pre1[s] = self.feature_encoder.pre_encoding[s](x1[s])
+            z1[s] = self.feature_encoder.encoder(x_pre1[s])
+            x_hat1[s] = self.feature_encoder.decoder(z1[s])
 
-        # x1_encoded.requires_grad = False
-        # x2_encoded.requires_grad = False
-        y1 = self.forward(x1_encoded)
-        y2 = self.forward(x2_encoded)
+            x_pre2[s] = self.feature_encoder.pre_encoding[s](x2[s])
+            z2[s] = self.feature_encoder.encoder(x_pre2[s])
+            x_hat2[s] = self.feature_encoder.decoder(z2[s])
 
-        loss = torch.tensor(np.array(
-            [0], dtype=np.float32), device='cuda' if torch.cuda.is_available() else "cpu")
+        loss = sum((F.mse_loss(x_pre1[s], x_hat1[s]) + F.mse_loss(x_pre2[s], x_hat2[s]) + self.feature_encoder.cfactor * self.feature_encoder.correspondence_loss(z1[s],z2[s], batch)) for s in x1.keys())
+    
+        y1 = self.forward(z1)
+        y2 = self.forward(z2)
 
-        for layer in x1_encoded.keys():
-            loss = loss + \
-                self.loss(x1_encoded[layer], x2_encoded[layer],
-                          y1[layer], y2[layer], batch)
-
+        for layer in x1.keys():
+            loss = loss +  self.loss(z1[layer], z2[layer], y1[layer], y2[layer], batch)
+        
         self.log('validation_loss', loss)
         return loss
 
     def configure_optimizers(self):
-        optimizer = torch.optim.Adam(self.parameters(), lr=1e-4)
+        optimizer = torch.optim.Adam(self.parameters(), lr=5*1e-4)
         return optimizer
 
 
 if __name__ == "__main__":
     autoencoder = SharedCorrespondenceEncoder()
-    tb_logger = TensorBoardLogger('tb_logs', name='correspondence_encoder_lr1e3')
+    attention = SharedMultiAttentionLayer2(autoencoder)
+    tb_logger = TensorBoardLogger('tb_logs', name='shared_weight_model')
     trainer = pytorch_lightning.Trainer(logger=tb_logger,
                                         gpus=1 if torch.cuda.is_available() else None)
     dm = CorrespondenceDataModule()
-    trainer.fit(autoencoder, dm)
+    trainer.fit(attention, dm)
+    # attention = SharedMultiAttentionLayer2(autoencoder)
+    # i = torch.normal(0,1,(1,3,640,480))
+    # batch = {
+    #     "image1": i, 
+    #     "image2": i
+    # }
+
+    # attention.training_step(batch, 0)
