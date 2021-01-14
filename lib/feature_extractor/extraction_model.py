@@ -11,7 +11,7 @@ import matplotlib.pyplot as plt
 
 
 class ExtractionModel(nn.Module):
-    def __init__(self, attention_model, thresh=0.0, max_features=None, use_d2net_detection=False, num_upsampling=4, use_nms=True) -> None:
+    def __init__(self, attention_model, thresh=0.0, max_features=None, use_d2net_detection=False, num_upsampling=4, use_nms=True, sum_descriptors=False) -> None:
         super().__init__()
         self._extraction_model = attention_model.feature_encoder
 
@@ -26,6 +26,7 @@ class ExtractionModel(nn.Module):
         self._max_features = max_features
         self._use_nms = use_nms
         self._max_pool = nn.MaxPool2d(kernel_size=3, stride=1, padding=1)
+        self._sum_descriptors = sum_descriptors
 
     def nms(self, x):
         lmax = self._max_pool(x)
@@ -54,7 +55,7 @@ class ExtractionModel(nn.Module):
             for df in dense_features:
                 d, m = self.detection(df)
                 detections.append(d)
-                d2_net_map.append(m)
+                d2_net_map.append(m.cpu())
         else:
             detections = self.detection(dense_features)
             # for i,d in enumerate(detections):
@@ -99,15 +100,36 @@ class ExtractionModel(nn.Module):
         raw_desriptors = []
         ids = []
 
-        for i in range(3):
-            try:
-                rd, _, _ids = utils.interpolate_dense_features(
-                    fmap_keypoints[i], dense_features[i][0])
-                raw_desriptors.append(rd)
-                ids.append(_ids)
-            except utils.EmptyTensorError:
-                raw_desriptors.append(None)
-                ids.append(None)
+        if not self._sum_descriptors:
+            for i in range(3):
+                try:
+                    rd, _, _ids = utils.interpolate_dense_features(
+                        fmap_keypoints[i], dense_features[i][0])
+                    raw_desriptors.append(rd)
+                    ids.append(_ids)
+                except utils.EmptyTensorError:
+                    raw_desriptors.append(None)
+                    ids.append(None)
+        else:
+            score_inp = detections if not self._use_d2net_detection else d2_net_map
+            for i in range(3):
+                rd_use = None
+                _ids_use = None
+                for j in range(3):
+                    try:
+                        rd, _, _ids = utils.interpolate_dense_features(
+                            fmap_keypoints[i], score_inp[i][0]*dense_features[i][0])
+                        if rd_use is None:
+                            rd_use = rd 
+                        else:
+                            rd_use += rd 
+                        if i == j:
+                            _ids_use = _ids
+                    except utils.EmptyTensorError:
+                        pass
+                
+                raw_desriptors.append(rd_use)
+                ids.append(_ids_use)
         fmap_pos = [fmap_pos[i][:, ids[i]] for i in range(3)]
         fmap_keypoints = [fmap_keypoints[i][:, ids[i]] for i in range(3)]
 

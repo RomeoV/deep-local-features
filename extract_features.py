@@ -104,6 +104,8 @@ parser.add_argument(
     help='output file type (npz or mat)'
 )
 
+parser.add_argument("--sum_descriptors", action='store_true', default=False, help="Wether or not to sum descriptors of different scales")
+
 args = parser.parse_args()
 
 print(args)
@@ -140,7 +142,7 @@ if args.load_from_folder:
 else:
     encoder_ckpt = load_checkpoint.get_encoder_ckpt(args.encoder_ckpt)
 if args.encoder_model == "auto":
-    encoder = CorrespondenceEncoder.load_from_checkpoint(encoder_ckpt).requires_grad_(False)
+    encoder = autoencoder.FeatureEncoder64Up.load_from_checkpoint(encoder_ckpt).requires_grad_(False)
 else:
     exec('EncoderModule = autoencoder.' + args.encoder_model)
     encoder = EncoderModule.load_from_checkpoint(encoder_ckpt,
@@ -177,7 +179,8 @@ extraction_model = em.ExtractionModel(
     use_d2net_detection=args.d2net_localization,
     num_upsampling=num_upsampling_extraction,
     thresh=args.thresh,
-    use_nms=not args.nouse_nms)
+    use_nms=not args.nouse_nms,
+    sum_descriptors=args.sum_descriptors)
 
 if not args.nogpu:
     extraction_model = extraction_model.cuda()
