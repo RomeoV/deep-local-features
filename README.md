@@ -16,16 +16,16 @@ Critical to our goal, we forward multi-level convolutional activations directly 
 .
 ├── checkpoints
 ├── externals
-├── hpatches_sequences
+├── hpatches_sequences                <--- Benchmarking files
 ├── lib
 │   ├── feature_extractor
 │   │   └── feature_extraction.py
-│   ├── attention_model.py
-│   ├── autoencoder.py
-│   ├── correspondence_datamodule.py
-│   ├── extraction_model.py
-│   ├── loss.py
-│   └── megadepth_dataset.py
+│   ├── attention_model.py            <--- Attention and training
+│   ├── autoencoder.py                <--- Autoencoder and training
+│   ├── correspondence_datamodule.py  <--- Correspondence handler
+│   ├── extraction_model.py           <--- Feature extraction
+│   ├── loss.py                       <--- Different loss implementations
+│   └── megadepth_dataset.py          <--- Dataset handler
 ├── notebooks
 ├── scripts
 │   ├── extract_features.py
