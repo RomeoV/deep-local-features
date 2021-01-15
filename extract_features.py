@@ -1,3 +1,5 @@
+# this is adapted from https://github.com/mihaidusmanu/d2-net
+
 import argparse
 from threading import active_count
 
@@ -241,8 +243,6 @@ for line in tqdm(lines, total=len(lines)):
     if args.scale:
         keypoints[:, 0] *= fact_i
         keypoints[:, 1] *= fact_j
-    # i, j -> u, v
-    # TODO Find out what the following line is for
     if args.append:
         keypoints = torch.cat([
             keypoints,
@@ -275,6 +275,3 @@ f = open("checkpoints/extensions.txt", "a")
 f.write(args.output_extension + '\n')
 f.close()
 print('DONE: Extension: ' + args.output_extension)
-    #del keypoints, descriptors, scores, input_image, resized_image, image, im
-    #if not args.nogpu:
-    #    torch.cuda.empty_cache()

@@ -16,17 +16,23 @@ export MegaDepthDatasetPath="/path/to/MegaDepthDataset"
 ```
 
 ### Load Model & Evaluate with HPatches
+
+Already evaluated models can be seen in *hpatches_sequences/HPatches-Benchmark-Comparison.ipynb* and in *HPatches-Benchmark-Losses.ipynb*. The results for them are cached in *hpatches_sequences/cache*, so they notebook can be rerun yielding the same results.
+
+##### Download HPatches
 First go to *hpatches_sequences* and run
 ```bash
 sh download.sh
 ```
 to download the HPatches dataset.
 
+##### Extract Keypoints
+
 To extract keypoints on the dataset run from the project root folder
 ```
 python extract_features.py --attention_ckpt cfe64_multi_attention_model2_d2netloss
 ```
-The results will be saved with the extension **.our-model**. In order to use another extension use `--output_extension .some-extension` or use `--smart_name` in order to generate an extension based on the used model and parameters.
+The results will be saved with the extension **.our-model**. In order to use another extension use `--output_extension .some-extension` or use `--smart_name` in order to generate an extension based on the used model and parameters. The generated extensions are written to *checkpoints/extensions.txt*.
 
 Other useful parameters: 
 * `--nogpu` if you don't have a GPU 
@@ -35,7 +41,7 @@ Other useful parameters:
 * `--load_from_folder` The checkpoint must be in *checkpoints/checkpoint_name.ckpt* as set by --attention_ckpt. By default, checkpoints are automatically downloaded from Polybox, this, however, requires authentication.
 
 ##### Evaluate
-Run *HPatches-Benchmark.ipynb* in *hpatches_sequence*. Add the used extensions the *methods* and *names* field in the notebook.
+Run *HPatches-Benchmark.ipynb* in *hpatches_sequence*. Add the used extensions the *methods* and *names* field in the notebook. Set *visualize * and *use_ransac* (described in the papaer as refined) to *True* or *False*. To make sure that the evaluation is executed, make sure that the extension you want to evaluate is not contained in the cache folder (just delete it). 
 
 ##### Available Attention Checkpoints
 Attention checkpoints also contain weights for the encoder. The correct attention layer for each checkpoint is automatically loaded by *extract_features.py* when `python extract_features.py --attention_ckpt CHECKPOINT`. Available checkpoints are:
