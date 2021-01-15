@@ -12,6 +12,7 @@ Critical to our goal, we forward multi-level convolutional activations directly 
 ![Architecture](img/ArchitectureFinal.png) | ![Correspondence examples](img/CorrespondenceExamples.png)
 
 ## Directory layout
+Here, an overview over the files is given. The main components are the **dataset**, **architecture**, **losses** and **benchmarking**.
 ```
 .
 ├── checkpoints
@@ -97,7 +98,7 @@ ssh -NL 6001:localhost:6660 eth-id@login.leonhard.ethz.ch
 ```
 Now you can open `http://localhost:6001` in your local browser and check out your tensorflow.
 
-### Similar Work
+## Similar Work
 [DELF & DELG](https://github.com/tensorflow/models/tree/master/research/delf)  
 [DELF PyTorch :) ](https://github.com/nashory/DeLF-pytorch)  
 [D2-Net](https://github.com/mihaidusmanu/d2-net)  
