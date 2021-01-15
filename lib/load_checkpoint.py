@@ -14,6 +14,8 @@ ENCODER = {
 
 # models : attention_model.AttentionLayer, AttentionLayer2, MultiAttentionLayer, MultiAttentionLayer2
 ATTENTION = {
+    "d2enc" : "tb_logs/d2net_encoder3_lr5e4/version_0/checkpoints/epoch%3D25-step%3D3769.ckpt",
+
     "attention_model": "tb_logs/attention_model/version_9/checkpoints/epoch%3D44-step%3D6524.ckpt",
     "attention_model_delf_distinctiveness_loss": "tb_logs/attention_model_delf_distinctiveness_loss/version_1/checkpoints/epoch%3D4-step%3D586.ckpt",
     "attention_model_sum_distinctiveness_loss": "tb_logs/attention_model_sum_distinctiveness_loss/version_4/checkpoints/epoch%3D40-step%3D5808.ckpt",
