@@ -30,7 +30,7 @@ to download the HPatches dataset.
 
 To extract keypoints on the dataset run from the project root folder
 ```
-python extract_features.py --attention_ckpt cfe64_multi_attention_model2_d2netloss
+python extract_features.py --cfe64_multi_attention_model2_distinctiveness+_lossN2_lambda05_sm_SHARED
 ```
 The results will be saved with the extension **.our-model**. In order to use another extension use `--output_extension .some-extension` or use `--smart_name` in order to generate an extension based on the used model and parameters. The generated extensions are written to *checkpoints/extensions.txt*.
 
