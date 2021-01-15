@@ -67,6 +67,7 @@ To extract keypoints on the dataset run from the project root folder
 ```
 python extract_features.py --attention_ckpt cfe64_multi_attention_model2_distinctiveness+_lossN2_lambda05_sm_SHARED --load_from_folder
 ```
+This should work without having to download an additional checkpoint.
 The results will be saved with the extension **.our-model**. In order to use another extension use `--output_extension .some-extension` or use `--smart_name` in order to generate an extension based on the used model and parameters. The generated extensions are written to *checkpoints/extensions.txt*.
 
 Other useful parameters: 
@@ -74,7 +75,8 @@ Other useful parameters:
 * `--load_from_folder` The checkpoint must be in *checkpoints/checkpoint_name.ckpt* as set by --attention_ckpt. By default, checkpoints are automatically downloaded from Polybox. This, however, requires authentication. If you want to use the automatic download, please contact philipp.lindenberger@math.ethz.ch. Alternatively, you can download the checkpoints from https://polybox.ethz.ch/index.php/s/LlnekeNyCa0QJ5I manually, add them with the correct name to the *checkpoints/* folder and use the `--load_from_folder` parameter.
 
 ##### Evaluate
-Run *HPatches-Benchmark.ipynb* in *hpatches_sequence*. Add the used extensions the *methods* and *names* field in the notebook. Set *visualize * and *use_ransac* (described in the papaer as refined) to *True* or *False*. To make sure that the evaluation is executed, make sure that the extension you want to evaluate is not contained in the cache folder (just delete it). 
+Run *HPatches-Benchmark.ipynb* in *hpatches_sequence*. Add the used extensions the *methods* and *names* field in the notebook(*our-model* is already added). 
+Set *visualize* and *use_ransac* (described in the paper as refined) to *True* or *False*. To make sure that the evaluation is executed, make sure that the extension you want to evaluate is not already contained in the cache folder (**just delete it**: Using the default extension, delete *hpatches_sequences/cache/our-model.npy*). 
 
 ##### Available Attention Checkpoints
 Attention checkpoints also contain weights for the encoder. The correct attention layer for each checkpoint is automatically loaded by *extract_features.py* when `python extract_features.py --attention_ckpt CHECKPOINT`. Available checkpoints are:
