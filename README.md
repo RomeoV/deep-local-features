@@ -36,7 +36,7 @@ Here, an overview over the files is given. The main components are the **dataset
 ```
 
 ### Setup
-Create a new conda environment and install the packages from *environment.yml*:
+Create a new conda environment and install the packages from *environment.yml* (Linux):
 ```bash
 conda env create -n DL -f environment.yml
 conda activate DL
