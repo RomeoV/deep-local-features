@@ -28,9 +28,7 @@ Here, an overview over the files is given. The main components are the **dataset
 │   ├── loss.py                       <--- Different loss implementations
 │   └── megadepth_dataset.py          <--- Dataset handler
 ├── notebooks
-├── scripts
-│   ├── extract_features.py
-│   └── plot_keypoints.py
+├── extract_features.py               <--- This script uses the trained model
 ├── load_script_leonhard.sh
 ├── README.md
 ├── requirements.txt
@@ -73,8 +71,6 @@ The results will be saved with the extension **.our-model**. In order to use ano
 
 Other useful parameters: 
 * `--nogpu` if you don't have a GPU 
-<!--* `--encoder_ckpt correspondence_encoder_lr1e3` to chose another encoder checkpoint
- As alternative, you can load from a local file as follows: -->
 * `--load_from_folder` The checkpoint must be in *checkpoints/checkpoint_name.ckpt* as set by --attention_ckpt. By default, checkpoints are automatically downloaded from Polybox. This, however, requires authentication. If you want to use the automatic download, please contact philipp.lindenberger@math.ethz.ch. Alternatively, you can download the checkpoints from https://polybox.ethz.ch/index.php/s/LlnekeNyCa0QJ5I manually, add them with the correct name to the *checkpoints/* folder and use the `--load_from_folder` parameter.
 
 ##### Evaluate
@@ -82,6 +78,9 @@ Run *HPatches-Benchmark.ipynb* in *hpatches_sequence*. Add the used extensions t
 
 ##### Available Attention Checkpoints
 Attention checkpoints also contain weights for the encoder. The correct attention layer for each checkpoint is automatically loaded by *extract_features.py* when `python extract_features.py --attention_ckpt CHECKPOINT`. Available checkpoints are:
+<details>
+<summary> Click to expand </summary>
+
 * cfe64_multi_attention_model2_d2netloss
 * cfe64_multi_attention_model2_d2netloss_backprop
 * cfe64_multi_attention_model_d2netloss
@@ -101,18 +100,15 @@ Attention checkpoints also contain weights for the encoder. The correct attentio
 * cfe64_multi_attention_model2_distinctiveness+_lossN32_lambda1
 * cfe64_multi_attention_model2_distinctiveness+_lossN16_lambda01_sm
 * cfe64_multi_attention_model2_distinctiveness+_loss
+</details>
 
 ### Training
-TODO
-
-TODO
-
-TODO
-
-### Run your .py files in lib
-go to the root directory of the repo
+To train the model yourself, you first need to obtain the `MegaDepth` dataset from [here](http://www.cs.cornell.edu/projects/megadepth/) (~600GB).
+Afterwards, you need to preprocess the scenes using the tools provided by the [D2-Net repository](https://github.com/mihaidusmanu/d2-net/tree/master/megadepth_utils).
+Then, if the necessary python requirements are installed (see above), you can start the training:
 ```bash
-python -m lib.autoencoder
+export MegaDepthDatasetPath="/path/to/MegaDepthDataset"
+python -m lib.attention_model
 ```
 
 ### Run tensorboard on leonhard and open locally
