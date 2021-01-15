@@ -80,11 +80,9 @@ class HardDetectionModule(nn.Module):
 
         depth_wise_max = torch.max(batch, dim=1)[0]
         is_depth_wise_max = (batch == depth_wise_max)
-        del depth_wise_max
 
         local_max = F.max_pool2d(batch, 3, stride=1, padding=1)
         is_local_max = (batch == local_max)
-        del local_max
 
         dii = F.conv2d(
             batch.view(-1, 1, h, w), self.dii_filter.to(device), padding=1
@@ -109,4 +107,4 @@ class HardDetectionModule(nn.Module):
         )
         del is_depth_wise_max, is_local_max, is_not_edge
 
-        return detected
+        return detected, depth_wise_max
