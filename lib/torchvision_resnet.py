@@ -1,4 +1,7 @@
-# Taken and modified from torchvision: https://github.com/pytorch/vision/blob/master/torchvision/models/resnet.py
+#################################################################################
+## Taken and modified from official torchvision repository:                    ##
+## https://github.com/pytorch/vision/blob/master/torchvision/models/resnet.py  ##
+#################################################################################
 
 import torch
 from torch import Tensor

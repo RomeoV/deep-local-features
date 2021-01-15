@@ -1,4 +1,41 @@
-#Improving Scale- and Viewpoint Invariance of Learned LocalFeatures
+# Using Multi-Level Convolutional Information for Scale- and Viewpoint-Robust Local Features
+
+## Abstract
+> Fast and robust key point detection and feature matching is an important task for many problems in computer vision, for example Image Retrieval and Augmented Reality.
+Two key issues arise: Key point detectors in real-time applications have to be both fast to compute and robust to change in illumination, viewpoint and scale.
+In this work we aim to increase the robustness of feature descriptors against scale and viewpoint changes while maintaining similar performance otherwise.
+To this end, we expand on previous work, using a pretrained ResNet backbone and add an attention layer for keypoint selection, which we train directly on the quality of the keypoints.
+Critical to our goal, we forward multi-level convolutional activations directly to the final attention layer, bypassing further transformations and thus combining local with global information in the descriptor generation.
+
+  Architecture             | Correspondence examples
+:-------------------------:|:-------------------------:
+![Architecture](img/ArchitectureFinal.png) | ![Correspondence examples](img/CorrespondenceExamples.png)
+
+## Directory layout
+Here, an overview over the files is given. The main components are the **dataset**, **architecture**, **losses** and **benchmarking**.
+```
+.
+├── checkpoints
+├── externals
+├── hpatches_sequences                <--- Benchmarking files
+├── lib
+│   ├── feature_extractor
+│   │   └── feature_extraction.py
+│   ├── attention_model.py            <--- Attention and training
+│   ├── autoencoder.py                <--- Autoencoder and training
+│   ├── correspondence_datamodule.py  <--- Correspondence handler
+│   ├── extraction_model.py           <--- Feature extraction
+│   ├── loss.py                       <--- Different loss implementations
+│   └── megadepth_dataset.py          <--- Dataset handler
+├── notebooks
+├── scripts
+│   ├── extract_features.py
+│   └── plot_keypoints.py
+├── load_script_leonhard.sh
+├── README.md
+├── requirements.txt
+└── run_bench.sh
+```
 
 ### Setup
 Create a new conda environment and install the packages from *environment.yml*:
@@ -100,64 +137,7 @@ ssh -NL 6001:localhost:6660 eth-id@login.leonhard.ethz.ch
 ```
 Now you can open `http://localhost:6001` in your local browser and check out your tensorflow.
 
-### TODOs
-Architectures:
-
-FeatureEncoder1: Trained (conv1 layers)
-FeatureEncoder3: Trained (conv3 layers)
-FeatureEncoder: Non-finished trainining (more channels)
-
-AttentionLayers:
-AttentionLayer (R2D2 architecture, 34 parameter)
-    Sum featuremaps (concat_layers())
-    concat featuremaps (sum_layers())
-
-AttentionLayer2 (DeLF architecture)
-MultiAttentionLayer
-
-Loss:
-D2Net loss (loss.py)
-distinctiveness loss (loss.py)
-repeatability loss (repeatability_loss.py)
-
-
-Trained full models:
-Works:
-FeatureEncoder1 + AttentionLayerSum + distinctiveness-loss (path to weightfile)
-FeatureEncoder1 + AttentionLayer2Sum + distinctiveness-loss (path to weightfile)
-FeatureEncoder1 + MultiAttentionLayer + distinctiveness-loss (path to weightfile)
-
-Works not:
-FeatureEncoder1 + AttentionLayerConcat + D2Net
-
-To Test:
-FeatureEncoder1 + MultiAttentionLayer + repeatability-loss
-
-FeatureEncoder + AttentionLayerSum + distinctiveness-loss
-FeatureEncoder + MultiAttentionLayer + distinctiveness-loss 
-
-FeatureEncoder3 + AttentionLayerSum + distinctiveness-loss (Romeo)
-FeatureEncoder3 + MultiAttentionLayer + distinctiveness-loss (Romeo)
-
-ToDo:
-L2 Normalization
-K in Distinctiveness Loss
-
-Report:
-Visualization Autoencoder: (Romeo)
-    Early: Resnet -> Encoded features -> Decoded features
-    Middle: Resnet -> Encoded features -> Decoded features
-    Deep: Resnet -> Encoded features -> Decoded features
-
-Visualization AttentionLayer: (evtl. mehrere im MultiAttentionLayer) 
-    Image + Attention Layer on top (similar to R2D2)
-
-Keypoints visualization: (Mark)
-    1 Bild + keypoints (input: [x1, y1], [x2, y2], ...)
-    Matching: 2 Bilder
-### Goals
-
-### Similar Work
+## Similar Work
 [DELF & DELG](https://github.com/tensorflow/models/tree/master/research/delf)  
 [DELF PyTorch :) ](https://github.com/nashory/DeLF-pytorch)  
 [D2-Net](https://github.com/mihaidusmanu/d2-net)  

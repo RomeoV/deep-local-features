@@ -1,3 +1,5 @@
+# Adapted from "D2-Net: A Trainable CNN forJoint Description and Detectionof Local Features"
+# https://github.com/mihaidusmanu/d2-net/blob/master/lib/loss.py
 
 from lib.megadepth_dataset import *
 from externals.d2net.lib.utils import *
