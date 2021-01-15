@@ -52,7 +52,7 @@ export MegaDepthDatasetPath="/path/to/MegaDepthDataset"
 
 ### Load Model & Evaluate with HPatches
 
-Already evaluated models can be seen in *hpatches_sequences/HPatches-Benchmark-Comparison.ipynb* and in *HPatches-Benchmark-Losses.ipynb*. The results for them are cached in *hpatches_sequences/cache*, so they notebook can be rerun yielding the same results.
+Already evaluated models can be seen in *hpatches_sequences/HPatches-Benchmark-Comparison.ipynb* and in *hpatches_sequences/HPatches-Benchmark-Losses.ipynb*. The results for them are cached in *hpatches_sequences/cache*, so they notebook can be rerun yielding the same results.
 
 ##### Download HPatches
 First go to *hpatches_sequences* and run
