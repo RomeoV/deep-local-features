@@ -1,4 +1,3 @@
-
 import pdb
 import numpy as np
 import torch
@@ -15,6 +14,12 @@ class SimilarityLoss(nn.Module):
         return F.mse_loss(attention1, attention2)
 
 class CorrespondenceLoss(nn.Module):
+    """ Adapted from 'D2-Net: A Trainable CNN for Joint Description and Detection of Local Features'
+
+    https://arxiv.org/pdf/1905.03561.pdf
+    https://github.com/mihaidusmanu/d2-net/blob/master/lib/loss.py
+    """
+
     def __init__(self, margin=1, safe_radius=4, scaling_steps=3):
         super().__init__()
         self.margin = margin
@@ -140,6 +145,11 @@ class CorrespondenceLoss(nn.Module):
 
 
 class TripletMarginLoss(nn.Module):
+    """ Taken from 'D2-Net: A Trainable CNN for Joint Description and Detection of Local Features'
+
+    https://arxiv.org/pdf/1905.03561.pdf
+    https://github.com/mihaidusmanu/d2-net/blob/master/lib/loss.py
+    """
     def __init__(self, margin=1, safe_radius=4, scaling_steps=3):
         super().__init__()
         self.margin = margin
@@ -323,9 +333,13 @@ class TripletMarginLoss(nn.Module):
 
 
 class PeakyLoss (nn.Module):
-    """ Try to make the repeatability locally peaky.
-    Mechanism: we maximize, for each pixel, the difference between the local mean
-               and the local max.
+    """ Distinctiveness loss, adapted from 'R2D2: Repeatable and Reliable Detector and Descriptor'
+
+    https://arxiv.org/pdf/1906.06195.pdf
+    https://github.com/naver/r2d2/blob/master/nets/repeatability_loss.py
+
+    Tries to make the repeatability locally peaky.
+    Mechanism: we maximize, for each pixel, the difference between the local mean and the local max.
     """
     def __init__(self, N=16):
         nn.Module.__init__(self)
@@ -344,6 +358,11 @@ class PeakyLoss (nn.Module):
         return (self.forward_one(sali1) + self.forward_one(sali2)) /2
 
 class DistinctivenessLoss(nn.Module):
+    """ Distinctiveness loss, adapted from 'D2D: Learning to find good correspondences for image matching and manipulation'
+
+    https://arxiv.org/pdf/2007.08480.pdf
+    """
+
     def __init__(self, margin=1, safe_radius=4, scaling_steps=3, N=32):
         super().__init__()
         self.margin = margin

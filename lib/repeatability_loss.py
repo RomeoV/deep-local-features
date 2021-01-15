@@ -10,6 +10,14 @@ LAMBDA = 1.
 
 
 class RepeatabilityLoss(nn.Module):
+    """ Adapted from from 'R2D2: Repeatable and Reliable Detector and Descriptor'
+
+    https://arxiv.org/pdf/1906.06195.pdf
+    https://github.com/naver/r2d2/blob/master/nets/repeatability_loss.py
+    """
+
+    https://arxiv.org/pdf/1906.06195.pdf
+    https://github.com/naver/r2d2/blob/master/nets/repeatability_loss.py
     def __init__(self, margin=1, safe_radius=4, scaling_steps=3):
         super().__init__()
         self.margin = margin

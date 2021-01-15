@@ -1,3 +1,9 @@
+###########################################################################################################
+## Original credit to: 'D2-Net: A Trainable CNN for Joint Description and Detection of Local Features'   ##
+## https://arxiv.org/pdf/1905.03561.pdf                                                                  ##
+## https://github.com/mihaidusmanu/d2-net/blob/master/lib/loss.py                                        ##
+###########################################################################################################
+
 import h5py
 
 import numpy as np
