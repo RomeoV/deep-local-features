@@ -1,3 +1,5 @@
+# this is adapted from https://github.com/mihaidusmanu/d2-net
+
 import argparse
 from threading import active_count
 
@@ -103,6 +105,12 @@ parser.add_argument(
     help='output file type (npz or mat)'
 )
 
+parser.add_argument(
+    '--d2enc', action='store_true', default=False, help="Preprocess and scale large images"
+)
+
+
+
 
 args = parser.parse_args()
 
@@ -139,13 +147,21 @@ encoder = EncoderModule(no_upsampling=no_upsampling,
                         replace_stride_with_dilation=replace_stride_with_dilation,
                         first_stride=args.first_stride,
                         load_tf_weights=False).eval()
+
+if args.d2enc:
+    encoder = EncoderModule.load_from_checkpoint(load_checkpoint.get_attention_ckpt('d2enc'),
+                                                 no_upsampling=no_upsampling,
+                                                 replace_stride_with_dilation=replace_stride_with_dilation,
+                                                 first_stride=args.first_stride,
+                                                 load_tf_weights=False).eval()
+
 if args.load_from_folder:
     attention_ckpt = 'checkpoints/' + args.attention_ckpt + '.ckpt'
-else:
+elif not args.d2enc:
     attention_ckpt = load_checkpoint.get_attention_ckpt(args.attention_ckpt)
 
 if args.attention_model == 'auto':
-    if 'multi_attention_model2' in args.attention_ckpt:
+    if 'multi_attention_model2' in args.attention_ckpt or args.d2enc:
         args.attention_model = 'MultiAttentionLayer2'
     elif 'multi_attention_model' in args.attention_ckpt:
         args.attention_model = 'MultiAttentionLayer'
@@ -157,9 +173,11 @@ if args.attention_model == 'auto':
 
 
 exec('AttentionModule = attention_model.' + args.attention_model)
-attention = AttentionModule.load_from_checkpoint(
-    attention_ckpt, feature_encoder=encoder).eval()
-
+if not args.d2enc:
+    attention = AttentionModule.load_from_checkpoint(
+        attention_ckpt, feature_encoder=encoder).eval()
+else:
+    attention = AttentionModule(encoder)
 
 extraction_model = em.ExtractionModel(
     attention,
@@ -225,8 +243,6 @@ for line in tqdm(lines, total=len(lines)):
     if args.scale:
         keypoints[:, 0] *= fact_i
         keypoints[:, 1] *= fact_j
-    # i, j -> u, v
-    # TODO Find out what the following line is for
     if args.append:
         keypoints = torch.cat([
             keypoints,
@@ -259,6 +275,3 @@ f = open("checkpoints/extensions.txt", "a")
 f.write(args.output_extension + '\n')
 f.close()
 print('DONE: Extension: ' + args.output_extension)
-    #del keypoints, descriptors, scores, input_image, resized_image, image, im
-    #if not args.nogpu:
-    #    torch.cuda.empty_cache()

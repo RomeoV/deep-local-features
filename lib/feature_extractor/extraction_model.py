@@ -11,13 +11,13 @@ import matplotlib.pyplot as plt
 
 
 class ExtractionModel(nn.Module):
-    def __init__(self, attention_model, thresh=0.0, max_features=None, use_d2net_detection=False, num_upsampling=4, use_nms=True, sum_descriptors=False) -> None:
+    def __init__(self, attention_model, thresh=0.0, max_features=None, use_d2net_detection=False, num_upsampling=4, use_nms=True, sum_descriptors=False, mult_with_d2=False) -> None:
         super().__init__()
         self._extraction_model = attention_model.feature_encoder
 
         self.localization = localization.HandcraftedLocalizationModule()
-        self.detection = DetectionModule(
-            attention_model) if not use_d2net_detection else localization.HardDetectionModule()
+        self.attent_detection = DetectionModule(attention_model)
+        self.d2_net_detection = localization.HardDetectionModule()
         self._use_d2net_detection = use_d2net_detection
         self.extraction = lambda x: self._extraction_model(x)
         self._num_upsampling = num_upsampling
@@ -27,6 +27,7 @@ class ExtractionModel(nn.Module):
         self._use_nms = use_nms
         self._max_pool = nn.MaxPool2d(kernel_size=3, stride=1, padding=1)
         self._sum_descriptors = sum_descriptors
+        self._mult_with_d2 = mult_with_d2
 
     def nms(self, x):
         lmax = self._max_pool(x)
@@ -38,8 +39,6 @@ class ExtractionModel(nn.Module):
 
         dense_features = self.extraction(images)
 
-        del images
-
         early = dense_features['early']
         middle = dense_features['middle']
         deep = dense_features['deep']
@@ -48,18 +47,19 @@ class ExtractionModel(nn.Module):
         detections = None
         displacements_input = None
         d2_net_map = []
-        if self._use_d2net_detection:
-            dense_features = [early, middle, deep]
-            displacements_input = dense_features
+        if self._use_d2net_detection or self._mult_with_d2:
+            displacements_input = [early, middle, deep]
             detections = []
-            for df in dense_features:
-                d, m = self.detection(df)
+            for df in [early, middle, deep]:
+                d, m = self.d2_net_detection(df)
                 detections.append(d)
                 d2_net_map.append(m.cpu())
-        else:
-            detections = self.detection(dense_features)
+        if not self._use_d2net_detection:
+            detections = self.attent_detection(dense_features)
             # for i,d in enumerate(detections):
             #     detections[i][d < self._thresh] = 0
+            if self._mult_with_d2:
+                detections = [detections[i].cpu()*d2_net_map[i] for i in range(3)]
             displacements_input = detections
             if self._use_nms:
                 detections = [self.nms(d) for d in detections]

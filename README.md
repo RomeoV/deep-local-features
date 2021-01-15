@@ -1,41 +1,80 @@
 #Improving Scale- and Viewpoint Invariance of Learned LocalFeatures
 
 ### Setup
-Create a new conda environment and install the packages from *requirements.txt*
+Create a new conda environment and install the packages from *environment.yml*:
 ```bash
-conda create -n DL
+conda env create -n DL -f environment.yml
 conda activate DL
-conda install --file requirements.txt
+```
+If you are using Leonhard for training, you can run
+```
+source load_script_leonhard.sh
+```
+Note that if you want wo train you need to download the MegaDepth dataset and set 
+```
+export MegaDepthDatasetPath="/path/to/MegaDepthDataset"
 ```
 
 ### Load Model & Evaluate with HPatches
+
+Already evaluated models can be seen in *hpatches_sequences/HPatches-Benchmark-Comparison.ipynb* and in *HPatches-Benchmark-Losses.ipynb*. The results for them are cached in *hpatches_sequences/cache*, so they notebook can be rerun yielding the same results.
+
+##### Download HPatches
 First go to *hpatches_sequences* and run
-```
+```bash
 sh download.sh
-sh download_cache.sh
 ```
 to download the HPatches dataset.
 
+##### Extract Keypoints
+
 To extract keypoints on the dataset run from the project root folder
 ```
-python extract_features.py --nouse_nms --attention_ckpt cfe64_multi_attention_model2_d2netloss
+python extract_features.py --cfe64_multi_attention_model2_distinctiveness+_lossN2_lambda05_sm_SHARED --load_from_folder
 ```
-The results will be saved with the extension **.our-model**. In order to use another extension use `--output_extension .some-extension` or use `--smart_name` in order to generate an extension based on the used model and parameters.
+The results will be saved with the extension **.our-model**. In order to use another extension use `--output_extension .some-extension` or use `--smart_name` in order to generate an extension based on the used model and parameters. The generated extensions are written to *checkpoints/extensions.txt*.
 
 Other useful parameters: 
 * `--nogpu` if you don't have a GPU 
-* `--encoder_ckpt correspondence_encoder_lr1e3` to chose another encoder checkpoint
-By default, checkpoints are automatically downloaded from Polybox, this, however, requires authentication. As alternative, you can load from a local file as follows: 
-* `--load_from_folder` The checkpoint must be in *checkpoints/checkpoint_name.ckpt* as set by --attention_ckpt
+<!--* `--encoder_ckpt correspondence_encoder_lr1e3` to chose another encoder checkpoint
+ As alternative, you can load from a local file as follows: -->
+* `--load_from_folder` The checkpoint must be in *checkpoints/checkpoint_name.ckpt* as set by --attention_ckpt. By default, checkpoints are automatically downloaded from Polybox. This, however, requires authentication. If you want to use the automatic download, please contact philipp.lindenberger@math.ethz.ch. Alternatively, you can download the checkpoints from https://polybox.ethz.ch/index.php/s/LlnekeNyCa0QJ5I manually, add them with the correct name to the *checkpoints/* folder and use the `--load_from_folder` parameter.
 
 ##### Evaluate
-Run *HPatches-Benchmark.ipynb* in *hpatches_sequence*. Add the used extensions to methods.
+Run *HPatches-Benchmark.ipynb* in *hpatches_sequence*. Add the used extensions the *methods* and *names* field in the notebook. Set *visualize * and *use_ransac* (described in the papaer as refined) to *True* or *False*. To make sure that the evaluation is executed, make sure that the extension you want to evaluate is not contained in the cache folder (just delete it). 
 
-### Available Checkpoints
+##### Available Attention Checkpoints
+Attention checkpoints also contain weights for the encoder. The correct attention layer for each checkpoint is automatically loaded by *extract_features.py* when `python extract_features.py --attention_ckpt CHECKPOINT`. Available checkpoints are:
+* cfe64_multi_attention_model2_d2netloss
+* cfe64_multi_attention_model2_d2netloss_backprop
+* cfe64_multi_attention_model_d2netloss
+* cfe64_multi_attention_model_d2netloss_backprop
+* cfe64_multi_attention_model_distinctiveness+_loss
+* cfe64_multi_attention_model_distinctiveness+_lossN8_l1
+* cfe64_multi_attention_model_distinctiveness+_lossN32_l1
+* multi_attention_model_distinctiveness_loss
+* cfe64_multi_attention_model2_distinctiveness+_lossN16_lambda01_sm_lowmargin_SHARED
+* cfe64_multi_attention_model2_distinctiveness+_lossN16_lambda01_lowmargin
+* cfe64_multi_attention_model2_distinctiveness+_lossN8_lambda01_sm_SHARED
+* cfe64_multi_attention_model2_distinctiveness+_lossN8_lambda01_sm
+* cfe64_multi_attention_model2_distinctiveness+_lossN8_lambda1
+* cfe64_multi_attention_model2_distinctiveness+_lossN2_lambda05_sm_SHARED
+* cfe64_multi_attention_model2_distinctiveness+_lossN2_lambda05_sm
+* cfe64_multi_attention_model2_distinctiveness+_lossN64_lambda1
+* cfe64_multi_attention_model2_distinctiveness+_lossN32_lambda1
+* cfe64_multi_attention_model2_distinctiveness+_lossN16_lambda01_sm
+* cfe64_multi_attention_model2_distinctiveness+_loss
+
+### Training
+TODO
+
+TODO
+
+TODO
 
 ### Run your .py files in lib
 go to the root directory of the repo
-```
+```bash
 python -m lib.autoencoder
 ```
 

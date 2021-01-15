@@ -35,6 +35,3 @@ python extract_features.py --smart_name --attention_ckpt cfe64_multi_attention_m
 python extract_features.py --smart_name --attention_ckpt cfe64_multi_attention_model2_distinctiveness+_lossN16_lambda01_sm
 
 python extract_features.py --smart_name --attention_ckpt cfe64_multi_attention_model2_distinctiveness+_loss
-
-
-
