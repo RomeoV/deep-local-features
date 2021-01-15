@@ -7,8 +7,9 @@ In this work we aim to increase the robustness of feature descriptors against sc
 To this end, we expand on previous work, using a pretrained ResNet backbone and add an attention layer for keypoint selection, which we train directly on the quality of the keypoints.
 Critical to our goal, we forward multi-level convolutional activations directly to the final attention layer, bypassing further transformations and thus combining local with global information in the descriptor generation.
 
-![Architecture](img/ArchitectureFinal.png)
-![Correspondence examples](img/CorrespondenceExamples.png)
+  Architecture             | Correspondence examples
+:-------------------------:|:-------------------------:
+![Architecture](img/ArchitectureFinal.png) | ![Correspondence examples](img/CorrespondenceExamples.png)
 
 ## Directory layout
 ```
