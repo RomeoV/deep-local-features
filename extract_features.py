@@ -2,19 +2,13 @@
 
 import argparse
 from threading import active_count
-
 import numpy as np
-
 import imageio
-
 import torch
-
 from tqdm import tqdm
-
-import scipy
-import scipy.io
+#import scipy
+#import scipy.io
 import scipy.misc
-
 # from lib.model_test import D2Net
 from externals.d2net.lib.utils import preprocess_image
 # from lib.pyramid import process_multiscale
@@ -23,7 +17,7 @@ from externals.d2net.lib.utils import preprocess_image
 from lib.feature_extractor import extraction_model as em
 from lib import autoencoder, attention_model
 from lib import load_checkpoint
-from lib.train_shared_fe64 import CorrespondenceEncoder
+#from lib.train_shared_fe64 import CorrespondenceEncoder
 #from pqdm.threads import pqdm
 import os
 # from externals.d2net.lib import localization, utils
