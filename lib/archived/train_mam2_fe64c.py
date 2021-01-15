@@ -11,6 +11,7 @@ from lib.repeatability_loss import RepeatabilityLoss
 from lib.autoencoder import *
 from lib.attention_model import *
 from lib.train_shared_fe64 import *
+
 REP_LOSS=False
 if __name__ == "__main__":
     autoencoder = CorrespondenceEncoder.load_from_checkpoint("tb_logs/correspondence_encoder_lr1e3/version_0/checkpoints/epoch=7-step=1159_interm.ckpt").requires_grad_(False)
