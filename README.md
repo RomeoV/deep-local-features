@@ -1,5 +1,8 @@
 # Using Multi-Level Convolutional Information for Scale- and Viewpoint-Robust Local Features
 
+## Report
+Please refer to the [full report](./report.pdf) for a detailed description and evaluation of the method.
+
 ## Abstract
 > Fast and robust key point detection and feature matching is an important task for many problems in computer vision, for example Image Retrieval and Augmented Reality.
 Two key issues arise: Key point detectors in real-time applications have to be both fast to compute and robust to change in illumination, viewpoint and scale.
